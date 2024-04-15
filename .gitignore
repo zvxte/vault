@@ -13,6 +13,6 @@ Cargo.lock
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
 
-# 
+# Ignore all .md files except README.md
 *.md
 !README.md
