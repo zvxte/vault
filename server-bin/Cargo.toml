@@ -1,0 +1,10 @@
+[package]
+name = "server-bin"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+server-lib = { path = "../server-lib" }
+
+tokio = { version = "1", features = ["rt-multi-thread", "net", "macros"] }
+axum = { version = "0.7", features = ["http1", "json", "form"] }
