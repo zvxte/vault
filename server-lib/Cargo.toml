@@ -4,5 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+crypto = { path = "../crypto" }
+
 axum = { version = "0.7", features = ["json", "form"] }
 serde = { version = "1.0", features = ["derive"]}

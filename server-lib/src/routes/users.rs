@@ -1,13 +1,14 @@
 use axum::{
     extract::{
         rejection::JsonRejection,
-        Json,
+        Json, State,
     },
     http::StatusCode,
     response::Response,
     response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
+use crypto::{Argon2Hasher, Hasher};
 
 const CONTENT_TYPE_JSON: [(&str, &str); 1] = [("Content-Type", "application/json")];
 
@@ -64,8 +65,11 @@ pub struct User {
     password: String,
 }
 
-pub async fn post_users_register(user: Result<Json<User>, JsonRejection>) -> Response {
-    let _user = match user {
+pub async fn post_users_register(
+    State(argon2): State<Argon2Hasher<'_>>,
+    user: Result<Json<User>, JsonRejection>,
+) -> Response {
+    let user = match user {
         Ok(user) => {
             user.0
         },
@@ -76,7 +80,17 @@ pub async fn post_users_register(user: Result<Json<User>, JsonRejection>) -> Res
             ).into_response()
         }
     };
-    
+
+    let _hashed_password = match argon2.hash_password(user.password) {
+        Ok(pwd) => pwd,
+        Err(_) => {
+            return MessageResponse::new(
+                StatusCode::BAD_REQUEST,
+                "Failed to register a new account".to_string(),
+            ).into_response()
+        }
+    };
+
     /*
     TODO!
     ...
