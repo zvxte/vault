@@ -6,10 +6,10 @@ use server_lib::routers;
 async fn main() {
     let users_router = routers::users_router();
     let app = Router::new()
-    .nest("/users", users_router);
+        .nest("/users", users_router);
 
     let address = "127.0.0.1:5000";
     let listener = TcpListener::bind(address).await.unwrap();
-    
+
     axum::serve(listener, app).await.unwrap();
 }
