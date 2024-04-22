@@ -8,7 +8,9 @@ use axum::{
     response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
-use crypto::{Argon2Hasher, Hasher};
+use crypto::Hasher;
+use crate::database::{Db, DbUser};
+use crate::routers::AppState;
 
 const CONTENT_TYPE_JSON: [(&str, &str); 1] = [("Content-Type", "application/json")];
 
@@ -21,7 +23,7 @@ pub struct DataResponse<T: Serialize> {
 }
 
 impl<T: Serialize> DataResponse<T> {
-    fn _new(status_code: StatusCode, data: T) -> Self {
+    fn new(status_code: StatusCode, data: T) -> Self {
         Self { status_code, data }
     }
 }
@@ -59,15 +61,76 @@ impl IntoResponse for MessageResponse {
     }
 }
 
-#[derive(Deserialize, Serialize)]
-pub struct User {
+#[derive(Deserialize)]
+pub struct UserIn {
     name: String,
     password: String,
 }
 
-pub async fn post_users_register(
-    State(argon2): State<Argon2Hasher<'_>>,
-    user: Result<Json<User>, JsonRejection>,
+#[derive(Serialize)]
+pub struct UserOut {
+    user_id: String,
+    username: String,
+    salt: [u8; 32],
+}
+
+impl UserOut {
+    fn from_dbuser(dbuser: DbUser) -> Self {
+        Self {
+            user_id: dbuser.user_id.to_string(),
+            username: dbuser.username,
+            salt: dbuser.salt
+        }
+    }
+}
+
+pub async fn post_users_register<'a>(
+    State(state): State<AppState<'a>>,
+    user: Result<Json<UserIn>, JsonRejection>,
+) -> Response {
+    let user = match user {
+        Ok(user) => {
+            user.0
+        },
+        Err(err) => {
+            return MessageResponse::new(
+                StatusCode::BAD_REQUEST,
+                err.to_string(),
+            ).into_response()
+        }
+    };
+    let hasher = &state.hasher;
+    
+    let hashed_password = match hasher.hash_password(&user.password) {
+        Ok(pwd) => pwd,
+        Err(_) => {
+            return MessageResponse::new(
+                StatusCode::BAD_REQUEST,
+                "Failed to register a new account".to_string(),
+            ).into_response()
+        }
+    };
+    
+    let database = &state.database;
+    match database.create_user(&user.name, &hashed_password).await {
+        Ok(_) => {
+            MessageResponse::new(
+                StatusCode::CREATED,
+                "Account created".to_string(),
+            ).into_response()
+        },
+        Err(_) => {
+            MessageResponse::new(
+                StatusCode::BAD_REQUEST,
+                "Failed to register a new account".to_string(),
+            ).into_response()
+        }
+    }
+}
+
+pub async fn post_users_login<'a>(
+    State(state): State<AppState<'a>>,
+    user: Result<Json<UserIn>, JsonRejection>,
 ) -> Response {
     let user = match user {
         Ok(user) => {
@@ -81,23 +144,29 @@ pub async fn post_users_register(
         }
     };
 
-    let _hashed_password = match argon2.hash_password(user.password) {
-        Ok(pwd) => pwd,
-        Err(_) => {
-            return MessageResponse::new(
+    let database = &state.database;
+    let dbuser = match database.check_user(&user.name).await {
+        Ok(dbuser) => dbuser,
+        Err(_) => return {
+            MessageResponse::new(
                 StatusCode::BAD_REQUEST,
-                "Failed to register a new account".to_string(),
+                "Failed to login".to_string(),
             ).into_response()
         }
     };
 
-    /*
-    TODO!
-    ...
-    */
+    let hasher = &state.hasher;
+    if let Ok(result) = hasher.cmp_password(&user.password,&dbuser.password) {
+        if result {
+            return DataResponse::new(
+                StatusCode::OK,
+                UserOut::from_dbuser(dbuser),
+            ).into_response()
+        }
+    }
 
     MessageResponse::new(
-        StatusCode::CREATED,
-        "Account created".to_string(),
+        StatusCode::BAD_REQUEST,
+        "Failed to login".to_string(),
     ).into_response()
 }
