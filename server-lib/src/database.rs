@@ -23,7 +23,7 @@ impl DbUser {
     }
 }
 
-pub struct DbPassword {
+pub struct _DbPassword {
     password_id: Uuid,
     user_id: Uuid,
     domain_name: String,
@@ -32,14 +32,14 @@ pub struct DbPassword {
     nonce: [u8; 12],
 }
 
-impl DbPassword {
-    fn new(password_id: Uuid, user_id: Uuid, domain_name: String,
+impl _DbPassword {
+    fn _new(password_id: Uuid, user_id: Uuid, domain_name: String,
         username: String, password: Vec<u8>, nonce: [u8; 12]) -> Self {
         Self { password_id, user_id, domain_name, username, password, nonce }
     }
 }
 
-pub struct DbNote {
+pub struct _DbNote {
     note_id: Uuid,
     user_id: Uuid,
     title: Vec<u8>,
@@ -47,8 +47,8 @@ pub struct DbNote {
     nonce: [u8; 12],
 }
 
-impl DbNote {
-    fn new(note_id: Uuid, user_id: Uuid, title: Vec<u8>,
+impl _DbNote {
+    fn _new(note_id: Uuid, user_id: Uuid, title: Vec<u8>,
         content: Vec<u8>, nonce: [u8; 12]) -> Self {
         Self {note_id, user_id, title, content, nonce }
     }
