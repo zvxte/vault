@@ -23,3 +23,8 @@ CREATE TABLE notes (
     content BYTEA,
     nonce BYTEA NOT NULL
 );
+
+CREATE TABLE sessions (
+    session_id VARCHAR(255) PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(user_id)
+);
