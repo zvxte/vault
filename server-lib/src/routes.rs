@@ -1,2 +1,2 @@
-mod model;
 pub mod users;
+pub mod passwords;
