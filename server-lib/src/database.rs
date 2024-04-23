@@ -1,8 +1,9 @@
 use sqlx::{
     types::Uuid,
-    postgres, Row
+    postgres, Row,
 };
 use rand::Rng;
+
 use crate::error;
 
 type Result<T> = std::result::Result<T, error::Error>;
@@ -55,6 +56,8 @@ impl _DbNote {
 }
 
 pub trait Db {
+    async fn create_session(&self, user_id: &Uuid) -> Result<String>;
+    async fn check_session(&self, session_id: String) -> Result<Uuid>;
     async fn create_user(&self, username: &String, password: &String) -> Result<()>;
     async fn check_user(&self, username: &String) -> Result<DbUser>;
 }
@@ -73,8 +76,30 @@ impl PostgreDb {
 }
 
 impl Db for PostgreDb {
+    async fn create_session(&self, user_id: &Uuid) -> Result<String> {
+        let sql = "
+            INSERT INTO sessions (session_id, user_id) VALUES ($1, $2);
+        ";
+        let session_id = create_session_id();
+        sqlx::query(sql)
+            .bind(&session_id)
+            .bind(&user_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(session_id)
+    }
+    async fn check_session(&self, session_id: String) -> Result<Uuid> {
+        let sql = "SELECT user_id FROM sessions WHERE session_id = $1;";
+        let query = sqlx::query_scalar(sql)
+            .bind(session_id);
+        let user_id = query
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(user_id)
+    }
+
     async fn create_user(&self, username: &String, password: &String) -> Result<()> {
-        let sql = "SELECT EXISTS (SELECT 1 FROM users WHERE users.username = $1)";
+        let sql = "SELECT EXISTS (SELECT 1 FROM users WHERE users.username = $1);";
         let exists: bool = sqlx::query_scalar(sql)
             .bind(username.to_lowercase())
             .fetch_one(&self.pool)
@@ -104,7 +129,7 @@ impl Db for PostgreDb {
     }
 
     async fn check_user(&self, username: &String) -> Result<DbUser> {
-        let sql = "SELECT * FROM users WHERE users.username = $1";
+        let sql = "SELECT * FROM users WHERE users.username = $1;";
         let query = sqlx::query(sql)
             .bind(username.to_lowercase());
         let row = query
@@ -133,4 +158,13 @@ fn create_salt() -> [u8; 32] {
     let mut salt = [0u8; 32];
     rand::thread_rng().fill(&mut salt);
     salt
+}
+
+fn create_session_id() -> String {
+    let mut rng = rand::thread_rng();
+    let session_id: String = (0..32)
+        .map(|_| rng.gen_range(0..=15))
+        .map(|n| format!("{:x}", n))
+        .collect();
+    session_id
 }
