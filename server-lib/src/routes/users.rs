@@ -3,14 +3,37 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-
+use serde::{Deserialize, Serialize};
 use crypto::Hasher;
-use crate::database::Db;
-use crate::model::{MessageResponse, UserIn, UserOut};
-use crate::routers::AppState;
+use crate::model::MessageResponse;
+use crate::database::{Db, DbUser};
+use crate::routers::UsersState;
+
+#[derive(Deserialize)]
+pub struct UserIn {
+    pub name: String,
+    pub password: String,
+}
+
+#[derive(Serialize)]
+pub struct UserOut {
+    user_id: String,
+    username: String,
+    salt: [u8; 32],
+}
+
+impl UserOut {
+    pub fn from_dbuser(dbuser: DbUser) -> Self {
+        Self {
+            user_id: dbuser.user_id.to_string(),
+            username: dbuser.username,
+            salt: dbuser.salt
+        }
+    }
+}
 
 pub async fn post_users_register<'a>(
-    State(state): State<AppState<'a>>,
+    State(state): State<UsersState<'a>>,
     user: Result<Json<UserIn>, JsonRejection>,
 ) -> Response {
     let user = match user {
@@ -32,7 +55,7 @@ pub async fn post_users_register<'a>(
 }
 
 pub async fn post_users_login<'a>(
-    State(state): State<AppState<'a>>,
+    State(state): State<UsersState<'a>>,
     user: Result<Json<UserIn>, JsonRejection>,
 ) -> Response {
     let user = match user {
@@ -41,13 +64,12 @@ pub async fn post_users_login<'a>(
     };
 
     let database = &state.database;
-    let dbuser = match database.check_user(&user.name).await {
+    let dbuser = match database.get_user(&user.name).await {
         Ok(dbuser) => dbuser,
         Err(_) => return MessageResponse::bad_request("Failed to login".to_string()),
     };
 
-    let hasher = &state.hasher;
-    if let Ok(result) = hasher.cmp_password(&user.password, &dbuser.password) {
+    if let Ok(result) = state.hasher.cmp_password(&user.password, &dbuser.password) {
         if result {
             let session_id = match database.create_session(&dbuser.user_id).await {
                 Ok(session_id) => session_id,
