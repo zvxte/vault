@@ -5,6 +5,7 @@ pub enum Error {
     DatabaseError,
     SqlxError(sqlx::Error),
     SqlxMigrateError(sqlx::migrate::MigrateError),
+    HeadersError,
 }
 
 impl From<sqlx::Error> for Error {
