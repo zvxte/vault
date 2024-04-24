@@ -1,10 +1,9 @@
-use serde::{Serialize, Deserialize};
+use serde::Serialize;
 use axum::{
     http::StatusCode,
     extract::Json,
     response::{Response, IntoResponse},
 };
-use crate::database::DbUser;
 
 const CONTENT_TYPE_JSON: [(&str, &str); 1] = [("Content-Type", "application/json")];
 
@@ -19,6 +18,14 @@ pub struct DataResponse<T: Serialize> {
 impl<T: Serialize> DataResponse<T> {
     pub fn _new(status_code: StatusCode, data: T) -> Self {
         Self { status_code, data }
+    }
+
+    pub fn ok(data: T) -> Response {
+        Self { status_code: StatusCode::OK, data }.into_response()
+    }
+
+    pub fn created(data: T) -> Response {
+        Self { status_code: StatusCode::CREATED, data }.into_response()
     }
 }
 
@@ -65,35 +72,4 @@ impl IntoResponse for MessageResponse {
             Json(self),
         ).into_response()
     }
-}
-
-#[derive(Deserialize)]
-pub struct UserIn {
-    pub name: String,
-    pub password: String,
-}
-
-#[derive(Serialize)]
-pub struct UserOut {
-    user_id: String,
-    username: String,
-    salt: [u8; 32],
-}
-
-impl UserOut {
-    pub fn from_dbuser(dbuser: DbUser) -> Self {
-        Self {
-            user_id: dbuser.user_id.to_string(),
-            username: dbuser.username,
-            salt: dbuser.salt
-        }
-    }
-}
-
-#[derive(Deserialize, Debug)]
-pub struct PasswordIn {
-    _domain_name: String,
-    _username: String,
-    _password: Vec<u8>,
-    _nonce: [u8; 12],
 }
