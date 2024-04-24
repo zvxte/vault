@@ -1,6 +1,6 @@
 use std::env;
 use axum::{
-    routing::post,
+    routing::{post, get},
     Router,
 };
 use crypto::Argon2Hasher;
@@ -9,13 +9,18 @@ use crate::database::PostgreDb;
 use crate::middleware;
 
 #[derive(Clone)]
-pub struct AppState<'a> {
+pub struct UsersState<'a> {
     pub hasher: Argon2Hasher<'a>,
     pub database: PostgreDb,
 }
 
+#[derive(Clone)]
+pub struct PasswordsState {
+    pub database: PostgreDb,
+}
+
 pub async fn users_router() -> Router {
-    let app_state = AppState {
+    let app_state = UsersState {
         hasher: Argon2Hasher::new(),
         database: PostgreDb::build(
             env::var("DATABASE_URL").expect("DATABASE_URL not set")
@@ -28,14 +33,14 @@ pub async fn users_router() -> Router {
 }
 
 pub async fn passwords_router() -> Router {
-    let app_state = AppState {
-        hasher: Argon2Hasher::new(),
+    let app_state = PasswordsState {
         database: PostgreDb::build(
             env::var("DATABASE_URL").expect("DATABASE_URL not set")
         ).await.expect("Invalid database configuration"),
     };
     Router::new()
         .route("/", post(passwords::post_passwords))
+        .route("/:id", get(passwords::get_passwords_id))
         .route_layer(axum::middleware::from_fn_with_state(app_state.clone(), middleware::validate_session))
         .with_state(app_state)
 }
