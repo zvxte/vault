@@ -5,30 +5,24 @@ use axum::{
     response::Response,
 };
 
-use crate::{database::Db, routers::AppState, model::MessageResponse};
+use crate::{database::Db, routers::PasswordsState, model::MessageResponse, utils};
 
-pub async fn validate_session<'a>(
-    State(state): State<AppState<'a>>,
+pub async fn validate_session(
+    State(state): State<PasswordsState>,
     mut request: Request,
     next: Next,
 ) -> Response {
-    let session_id = match request.headers().get("session_id") {
-        Some(session_id) => session_id.to_str(),
-        None => return MessageResponse::unauthorized("Unauthorized access".to_string()),
-    };
+    let session_id = utils::get_headers_value(request.headers(), "session_id");
     let user_id = match session_id {
         Ok(session_id) => {
-            let user_id = state.database.check_session(
-                session_id.to_string()
-            ).await;
-            match user_id {
+            match state.database.validate_session(session_id).await {
                 Ok(user_id) => user_id,
                 Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
             }
         },
         Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
     };
-    let user_id: HeaderValue = match user_id.to_string().as_str().parse() {
+    let user_id: HeaderValue = match user_id.to_string().parse() {
         Ok(header_value) => header_value,
         Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
     };
