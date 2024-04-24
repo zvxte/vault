@@ -24,17 +24,17 @@ impl DbUser {
     }
 }
 
-pub struct _DbPassword {
-    password_id: Uuid,
-    user_id: Uuid,
-    domain_name: String,
-    username: String,
-    password: Vec<u8>,
-    nonce: [u8; 12],
+pub struct DbPassword {
+    pub password_id: Uuid,
+    pub user_id: Uuid,
+    pub domain_name: String,
+    pub username: String,
+    pub password: Vec<u8>,
+    pub nonce: [u8; 12],
 }
 
-impl _DbPassword {
-    fn _new(password_id: Uuid, user_id: Uuid, domain_name: String,
+impl DbPassword {
+    fn new(password_id: Uuid, user_id: Uuid, domain_name: String,
         username: String, password: Vec<u8>, nonce: [u8; 12]) -> Self {
         Self { password_id, user_id, domain_name, username, password, nonce }
     }
@@ -57,9 +57,12 @@ impl _DbNote {
 
 pub trait Db {
     async fn create_session(&self, user_id: &Uuid) -> Result<String>;
-    async fn check_session(&self, session_id: String) -> Result<Uuid>;
+    async fn validate_session(&self, session_id: String) -> Result<Uuid>;
     async fn create_user(&self, username: &String, password: &String) -> Result<()>;
-    async fn check_user(&self, username: &String) -> Result<DbUser>;
+    async fn get_user(&self, username: &String) -> Result<DbUser>;
+    async fn create_password(&self, user_id: &Uuid, domain_name: &String,
+        username: &String, password: &Vec<u8>, nonce: &[u8; 12]) -> Result<DbPassword>;
+    async fn get_password(&self, password_id: &Uuid) -> Result<DbPassword>;
 }
 
 #[derive(Clone)]
@@ -88,8 +91,8 @@ impl Db for PostgreDb {
             .await?;
         Ok(session_id)
     }
-    async fn check_session(&self, session_id: String) -> Result<Uuid> {
-        let sql = "SELECT user_id FROM sessions WHERE session_id = $1;";
+    async fn validate_session(&self, session_id: String) -> Result<Uuid> {
+        let sql = "SELECT user_id FROM sessions WHERE sessions.session_id = $1;";
         let query = sqlx::query_scalar(sql)
             .bind(session_id);
         let user_id = query
@@ -128,7 +131,7 @@ impl Db for PostgreDb {
         Ok(())
     }
 
-    async fn check_user(&self, username: &String) -> Result<DbUser> {
+    async fn get_user(&self, username: &String) -> Result<DbUser> {
         let sql = "SELECT * FROM users WHERE users.username = $1;";
         let query = sqlx::query(sql)
             .bind(username.to_lowercase());
@@ -142,6 +145,43 @@ impl Db for PostgreDb {
             row.get("salt"),
             row.get("created_at"),
             row.get("connected_at"),
+        ))
+    }
+
+    async fn create_password(&self, user_id: &Uuid, domain_name: &String,
+            username: &String, password: &Vec<u8>, nonce: &[u8; 12]) -> Result<DbPassword> {
+        let password_id = create_uuid_v4();
+        let sql = "
+            INSERT INTO passwords 
+            (password_id, user_id, domain_name, username, password, nonce) 
+            VALUES ($1, $2, $3, $4, $5, $6);
+        ";
+        sqlx::query(sql)
+            .bind(&password_id)
+            .bind(user_id)
+            .bind(domain_name)
+            .bind(username)
+            .bind(password)
+            .bind(nonce)
+            .execute(&self.pool)
+            .await?;
+        self.get_password(&password_id).await
+    }
+
+    async fn get_password(&self, password_id: &Uuid) -> Result<DbPassword> {
+        let sql = "SELECT * FROM passwords WHERE passwords.password_id = $1;";
+        let query = sqlx::query(sql)
+            .bind(password_id);
+        let row = query
+            .fetch_one(&self.pool)
+            .await?;
+        Ok(DbPassword::new(
+            row.get("password_id"),
+            row.get("user_id"),
+            row.get("domain_name"),
+            row.get("username"),
+            row.get("password"),
+            row.get("nonce"),
         ))
     }
 }
@@ -161,10 +201,9 @@ fn create_salt() -> [u8; 32] {
 }
 
 fn create_session_id() -> String {
-    let mut rng = rand::thread_rng();
-    let session_id: String = (0..32)
-        .map(|_| rng.gen_range(0..=15))
-        .map(|n| format!("{:x}", n))
-        .collect();
-    session_id
+    rand::thread_rng()
+        .sample_iter(&rand::distributions::Alphanumeric)
+        .take(32)
+        .map( char::from )
+        .collect()
 }
