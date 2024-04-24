@@ -9,6 +9,6 @@ crypto = { path = "../crypto" }
 axum = { version = "0.7", features = ["json", "form"] }
 serde = { version = "1.0", features = ["derive"] }
 sqlx = { version = "0.7", features = ["runtime-tokio", "tls-native-tls", "postgres", "uuid"] }
-uuid = { version = "1.8", features = ["v4", "fast-rng", "macro-diagnostics"] }
+uuid = { version = "1.8", features = ["v4", "fast-rng", "macro-diagnostics", "serde"] }
 chrono = { version = "0.4", features = ["now"] }
 rand = { version = "0.8" }
