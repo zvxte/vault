@@ -20,8 +20,9 @@ CREATE TABLE notes (
     note_id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(user_id),
     title BYTEA,
+    title_nonce BYTEA NOT NULL,
     content BYTEA,
-    nonce BYTEA NOT NULL
+    content_nonce BYTEA NOT NULL
 );
 
 CREATE TABLE sessions (
