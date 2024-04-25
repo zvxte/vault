@@ -11,7 +11,7 @@ use crate::routers::UsersState;
 
 #[derive(Deserialize)]
 pub struct UserIn {
-    pub name: String,
+    pub username: String,
     pub password: String,
 }
 
@@ -48,7 +48,7 @@ pub async fn post_users_register<'a>(
     };
 
     let database = &state.database;
-    match database.create_user(&user.name, &hashed_password).await {
+    match database.create_user(&user.username, &hashed_password).await {
         Ok(_) => MessageResponse::created("Account created".to_string()),
         Err(_) => MessageResponse::bad_request("Failed to register a new account".to_string()),
     }
@@ -64,7 +64,7 @@ pub async fn post_users_login<'a>(
     };
 
     let database = &state.database;
-    let dbuser = match database.get_user(&user.name).await {
+    let dbuser = match database.get_user(&user.username).await {
         Ok(dbuser) => dbuser,
         Err(_) => return MessageResponse::bad_request("Failed to login".to_string()),
     };
