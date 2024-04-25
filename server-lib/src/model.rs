@@ -51,6 +51,10 @@ impl MessageResponse {
         Self { status_code, message }.into_response()
     }
 
+    pub fn ok(message: String) -> Response {
+        Self { status_code: StatusCode::OK, message }.into_response()
+    }
+
     pub fn created(message: String) -> Response {
         Self { status_code: StatusCode::CREATED, message }.into_response()
     }
