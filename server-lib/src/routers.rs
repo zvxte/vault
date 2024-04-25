@@ -1,6 +1,6 @@
 use std::env;
 use axum::{
-    routing::{post, get},
+    routing::{post, get, delete},
     Router,
 };
 use crypto::Argon2Hasher;
@@ -40,7 +40,9 @@ pub async fn passwords_router() -> Router {
     };
     Router::new()
         .route("/", post(passwords::post_passwords))
-        .route("/:id", get(passwords::get_passwords_id))
+        .route("/", get(passwords::get_passwords))
+        .route("/:password_id", get(passwords::get_passwords_id))
+        .route("/:password_id", delete(passwords::delete_passwords_id))
         .route_layer(axum::middleware::from_fn_with_state(app_state.clone(), middleware::validate_session))
         .with_state(app_state)
 }

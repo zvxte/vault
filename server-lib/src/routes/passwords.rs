@@ -40,7 +40,6 @@ impl PasswordOut {
     }
 }
 
-
 pub async fn post_passwords(
     headers: HeaderMap,
     State(state): State<PasswordsState>,
@@ -71,7 +70,7 @@ pub async fn post_passwords(
 }
 
 pub async fn get_passwords_id(
-    _headers: HeaderMap,
+    headers: HeaderMap,
     State(state): State<PasswordsState>,
     password_id: Result<Path<Uuid>, PathRejection>,
 ) -> Response {
@@ -80,10 +79,71 @@ pub async fn get_passwords_id(
         Err(err) => return MessageResponse::bad_request(err.to_string()),
     };
     
-    match state.database.get_password(&password_id).await {
-        Ok(dbpassword) => return DataResponse::ok(
-            PasswordOut::from_dbpassword(dbpassword)
-        ),
+    let user_id = match utils::get_headers_value(&headers, "user_id") {
+        Ok(user_id) => match Uuid::from_str(&user_id) {
+            Ok(user_id) => user_id,
+            Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
+        },
+        Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
+    };
+
+    match state.database.get_password(&user_id, &password_id).await {
+        Ok(dbpassword) => {
+            if dbpassword.user_id == user_id {
+                return DataResponse::ok(PasswordOut::from_dbpassword(dbpassword))
+            } else { 
+                return MessageResponse::unauthorized("Unauthorized access".to_string())
+            }
+        },
         Err(_) => return MessageResponse::bad_request("Failed to get a password".to_string()),
+    }
+}
+
+pub async fn get_passwords(
+    headers: HeaderMap,
+    State(state): State<PasswordsState>,
+) -> Response {
+    let user_id = match utils::get_headers_value(&headers, "user_id") {
+        Ok(user_id) => match Uuid::from_str(&user_id) {
+            Ok(user_id) => user_id,
+            Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
+        },
+        Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
+    };
+
+    let dbpasswords = match state.database.get_passwords(&user_id).await {
+        Ok(dbpasswords) => dbpasswords,
+        Err(_) => return MessageResponse::bad_request("Failed to get passwords".to_string()),
+    };
+
+    DataResponse::ok(
+        dbpasswords
+            .into_iter()
+            .map(|dbpassword| PasswordOut::from_dbpassword(dbpassword) )
+            .collect::<Vec<PasswordOut>>()
+    )
+}
+
+pub async fn delete_passwords_id(
+    headers: HeaderMap,
+    State(state): State<PasswordsState>,
+    password_id: Result<Path<Uuid>, PathRejection>,
+) -> Response {
+    let password_id = match password_id {
+        Ok(password_id) => password_id,
+        Err(err) => return MessageResponse::bad_request(err.to_string()),
+    };
+
+    let user_id = match utils::get_headers_value(&headers, "user_id") {
+        Ok(user_id) => match Uuid::from_str(&user_id) {
+            Ok(user_id) => user_id,
+            Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
+        },
+        Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
+    };
+
+    match state.database.delete_password(&user_id, &password_id).await {
+        Ok(_) => MessageResponse::ok("Password deleted".to_string()),
+        Err(_) => MessageResponse::bad_request("Failed to delete a password".to_string()),
     }
 }
