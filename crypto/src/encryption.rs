@@ -8,7 +8,7 @@ use argon2::{
 };
 
 pub trait Encrypter {
-    fn encrypt(&self, plain_password: String) -> Result<EncryptedData, aes_gcm::Error>;
+    fn encrypt(&self, data: String) -> Result<EncryptedData, aes_gcm::Error>;
     fn decrypt(&self, encrypted_data: EncryptedData) -> Result<String, aes_gcm::Error>;
 }
 
@@ -30,12 +30,12 @@ impl AesGcmEncrypter {
 }
 
 impl Encrypter for AesGcmEncrypter {
-    fn encrypt(&self, content: String) -> Result<EncryptedData, aes_gcm::Error> {
+    fn encrypt(&self, data: String) -> Result<EncryptedData, aes_gcm::Error> {
         let cipher = Aes256Gcm::new(&self.key);
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let data = cipher.encrypt(
             &nonce,
-            content.as_bytes().as_ref(),
+            data.as_bytes().as_ref(),
         )?;
         Ok(EncryptedData::new(nonce.into(), data))
     }
