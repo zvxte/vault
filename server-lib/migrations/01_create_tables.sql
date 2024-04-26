@@ -3,8 +3,8 @@ CREATE TABLE users (
     username VARCHAR(16) NOT NULL,
     password VARCHAR(128) NOT NULL,
     salt BYTEA NOT NULL,
-    created_at INTEGER NOT NULL DEFAULT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP),
-    connected_at INTEGER NOT NULL DEFAULT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)
+    created_at INTEGER NOT NULL,
+    connected_at INTEGER NOT NULL
 );
 
 CREATE TABLE passwords (
@@ -20,12 +20,12 @@ CREATE TABLE notes (
     note_id UUID PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(user_id),
     title BYTEA,
-    title_nonce BYTEA NOT NULL,
+    title_nonce BYTEA,
     content BYTEA,
-    content_nonce BYTEA NOT NULL
+    content_nonce BYTEA
 );
 
 CREATE TABLE sessions (
-    session_id VARCHAR(255) PRIMARY KEY,
+    session_id BYTEA PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES users(user_id)
 );
