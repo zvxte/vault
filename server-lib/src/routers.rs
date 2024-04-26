@@ -9,18 +9,13 @@ use crate::database::PostgreDb;
 use crate::middleware;
 
 #[derive(Clone)]
-pub struct UsersState<'a> {
+pub struct AppState<'a> {
     pub hasher: Argon2Hasher<'a>,
     pub database: PostgreDb,
 }
 
-#[derive(Clone)]
-pub struct PasswordsState {
-    pub database: PostgreDb,
-}
-
 pub async fn users_router() -> Router {
-    let app_state = UsersState {
+    let app_state = AppState {
         hasher: Argon2Hasher::new(),
         database: PostgreDb::build(
             env::var("DATABASE_URL").expect("DATABASE_URL not set")
@@ -33,7 +28,8 @@ pub async fn users_router() -> Router {
 }
 
 pub async fn passwords_router() -> Router {
-    let app_state = PasswordsState {
+    let app_state = AppState {
+        hasher: Argon2Hasher::new(),
         database: PostgreDb::build(
             env::var("DATABASE_URL").expect("DATABASE_URL not set")
         ).await.expect("Invalid database configuration"),

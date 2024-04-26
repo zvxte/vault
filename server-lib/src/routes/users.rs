@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use crypto::Hasher;
 use crate::model::MessageResponse;
 use crate::database::{Db, DbUser};
-use crate::routers::UsersState;
+use crate::routers::AppState;
 
 #[derive(Deserialize)]
 pub struct UserIn {
@@ -32,8 +32,8 @@ impl UserOut {
     }
 }
 
-pub async fn post_users_register<'a>(
-    State(state): State<UsersState<'a>>,
+pub async fn post_users_register(
+    State(state): State<AppState<'_>>,
     user: Result<Json<UserIn>, JsonRejection>,
 ) -> Response {
     let user = match user {
@@ -54,8 +54,8 @@ pub async fn post_users_register<'a>(
     }
 }
 
-pub async fn post_users_login<'a>(
-    State(state): State<UsersState<'a>>,
+pub async fn post_users_login(
+    State(state): State<AppState<'_>>,
     user: Result<Json<UserIn>, JsonRejection>,
 ) -> Response {
     let user = match user {

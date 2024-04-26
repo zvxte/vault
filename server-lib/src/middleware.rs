@@ -5,10 +5,10 @@ use axum::{
     response::Response,
 };
 
-use crate::{database::Db, routers::PasswordsState, model::MessageResponse, utils};
+use crate::{database::Db, routers::AppState, model::MessageResponse, utils};
 
 pub async fn validate_session(
-    State(state): State<PasswordsState>,
+    State(state): State<AppState<'_>>,
     mut request: Request,
     next: Next,
 ) -> Response {

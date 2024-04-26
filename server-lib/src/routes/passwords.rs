@@ -6,7 +6,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use sqlx::types::Uuid;
-use crate::routers::PasswordsState;
+use crate::routers::AppState;
 use crate::model::{MessageResponse, DataResponse};
 use crate::database::{Db, DbPassword};
 use crate::utils;
@@ -42,7 +42,7 @@ impl PasswordOut {
 
 pub async fn post_passwords(
     headers: HeaderMap,
-    State(state): State<PasswordsState>,
+    State(state): State<AppState<'_>>,
     password: Result<Json<PasswordIn>, JsonRejection>,
 ) -> Response {
 
@@ -71,7 +71,7 @@ pub async fn post_passwords(
 
 pub async fn get_passwords_id(
     headers: HeaderMap,
-    State(state): State<PasswordsState>,
+    State(state): State<AppState<'_>>,
     password_id: Result<Path<Uuid>, PathRejection>,
 ) -> Response {
     let password_id = match password_id {
@@ -101,7 +101,7 @@ pub async fn get_passwords_id(
 
 pub async fn get_passwords(
     headers: HeaderMap,
-    State(state): State<PasswordsState>,
+    State(state): State<AppState<'_>>,
 ) -> Response {
     let user_id = match utils::get_headers_value(&headers, "user_id") {
         Ok(user_id) => match Uuid::from_str(&user_id) {
@@ -126,7 +126,7 @@ pub async fn get_passwords(
 
 pub async fn delete_passwords_id(
     headers: HeaderMap,
-    State(state): State<PasswordsState>,
+    State(state): State<AppState<'_>>,
     password_id: Result<Path<Uuid>, PathRejection>,
 ) -> Response {
     let password_id = match password_id {
