@@ -42,7 +42,7 @@ pub async fn post_users_register(
     };
 
     let hasher = &state.hasher;
-    let hashed_password = match hasher.hash_password(&user.password) {
+    let hashed_password = match hasher.hash_data(&user.password) {
         Ok(pwd) => pwd,
         Err(_) => return MessageResponse::bad_request("Failed to register a new account".to_string()),
     };
@@ -69,7 +69,7 @@ pub async fn post_users_login(
         Err(_) => return MessageResponse::bad_request("Failed to login".to_string()),
     };
 
-    if let Ok(result) = state.hasher.cmp_password(&user.password, &dbuser.password) {
+    if let Ok(result) = state.hasher.cmp_data(&user.password, &dbuser.password) {
         if result {
             let session_id = match database.create_session(&dbuser.user_id).await {
                 Ok(session_id) => session_id,
@@ -86,6 +86,5 @@ pub async fn post_users_login(
             ).into_response();
         }
     }
-
     MessageResponse::bad_request("Failed to login".to_string())
 }

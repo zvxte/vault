@@ -3,7 +3,7 @@ use sqlx::{
     postgres, Row,
 };
 use rand::Rng;
-
+use crypto::hash_with_sha3;
 use crate::error;
 
 type Result<T> = std::result::Result<T, error::Error>;
@@ -58,7 +58,7 @@ impl _DbNote {
 
 pub trait Db {
     async fn create_session(&self, user_id: &Uuid) -> Result<String>;
-    async fn validate_session(&self, session_id: String) -> Result<Uuid>;
+    async fn validate_session(&self, session_id: &String) -> Result<Uuid>;
     async fn create_user(&self, username: &String, password: &String) -> Result<()>;
     async fn get_user(&self, username: &String) -> Result<DbUser>;
     async fn create_password(&self, user_id: &Uuid, domain_name: &String,
@@ -87,17 +87,19 @@ impl Db for PostgreDb {
             INSERT INTO sessions (session_id, user_id) VALUES ($1, $2);
         ";
         let session_id = create_session_id();
+        let hashed_session_id = hash_with_sha3(&session_id);
         sqlx::query(sql)
-            .bind(&session_id)
+            .bind(hashed_session_id)
             .bind(&user_id)
             .execute(&self.pool)
             .await?;
         Ok(session_id)
     }
-    async fn validate_session(&self, session_id: String) -> Result<Uuid> {
+    async fn validate_session(&self, session_id: &String) -> Result<Uuid> {
+        let hashed_session_id = hash_with_sha3(session_id);
         let sql = "SELECT user_id FROM sessions WHERE sessions.session_id = $1;";
         let query = sqlx::query_scalar(sql)
-            .bind(session_id);
+            .bind(hashed_session_id);
         let user_id = query
             .fetch_one(&self.pool)
             .await?;

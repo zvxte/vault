@@ -4,8 +4,12 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-
-use crate::{database::Db, routers::AppState, model::MessageResponse, utils};
+use crate::{
+    database::Db,
+    routers::AppState,
+    model::MessageResponse,
+    utils,
+};
 
 pub async fn validate_session(
     State(state): State<AppState<'_>>,
@@ -15,7 +19,7 @@ pub async fn validate_session(
     let session_id = utils::get_headers_value(request.headers(), "session_id");
     let user_id = match session_id {
         Ok(session_id) => {
-            match state.database.validate_session(session_id).await {
+            match state.database.validate_session(&session_id).await {
                 Ok(user_id) => user_id,
                 Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
             }
