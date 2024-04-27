@@ -1,10 +1,7 @@
-use sqlx::{
-    types::Uuid,
-    postgres, Row,
-};
-use rand::Rng;
-use crypto::hash_with_sha3;
 use crate::error;
+use crypto::hash_with_sha3;
+use rand::Rng;
+use sqlx::{postgres, types::Uuid, Row};
 
 type Result<T> = std::result::Result<T, error::Error>;
 
@@ -18,9 +15,22 @@ pub struct DbUser {
 }
 
 impl DbUser {
-    fn new(user_id: Uuid, username: String, password: String,
-        salt: [u8; 32], created_at: i32, connected_at: i32) -> Self {
-        Self { user_id, username, password, salt, created_at, connected_at }
+    fn new(
+        user_id: Uuid,
+        username: String,
+        password: String,
+        salt: [u8; 32],
+        created_at: i32,
+        connected_at: i32,
+    ) -> Self {
+        Self {
+            user_id,
+            username,
+            password,
+            salt,
+            created_at,
+            connected_at,
+        }
     }
 }
 
@@ -34,9 +44,22 @@ pub struct DbPassword {
 }
 
 impl DbPassword {
-    fn new(password_id: Uuid, user_id: Uuid, domain_name: String,
-        username: String, password: Vec<u8>, nonce: [u8; 12]) -> Self {
-        Self { password_id, user_id, domain_name, username, password, nonce }
+    fn new(
+        password_id: Uuid,
+        user_id: Uuid,
+        domain_name: String,
+        username: String,
+        password: Vec<u8>,
+        nonce: [u8; 12],
+    ) -> Self {
+        Self {
+            password_id,
+            user_id,
+            domain_name,
+            username,
+            password,
+            nonce,
+        }
     }
 }
 
@@ -50,19 +73,39 @@ pub struct _DbNote {
 }
 
 impl _DbNote {
-    fn _new(note_id: Uuid, user_id: Uuid, title: Vec<u8>, title_nonce: [u8; 12],
-        content: Vec<u8>, content_nonce: [u8; 12]) -> Self {
-        Self {note_id, user_id, title, title_nonce, content, content_nonce }
+    fn _new(
+        note_id: Uuid,
+        user_id: Uuid,
+        title: Vec<u8>,
+        title_nonce: [u8; 12],
+        content: Vec<u8>,
+        content_nonce: [u8; 12],
+    ) -> Self {
+        Self {
+            note_id,
+            user_id,
+            title,
+            title_nonce,
+            content,
+            content_nonce,
+        }
     }
 }
 
 pub trait Db {
     async fn create_session(&self, user_id: &Uuid) -> Result<String>;
-    async fn validate_session(&self, session_id: &String) -> Result<Uuid>;
+    async fn validate_session(&self, session_id: &Uuid) -> Result<Uuid>;
+    async fn delete_session(&self, session_id: &Uuid) -> Result<()>;
     async fn create_user(&self, username: &String, password: &String) -> Result<()>;
     async fn get_user(&self, username: &String) -> Result<DbUser>;
-    async fn create_password(&self, user_id: &Uuid, domain_name: &String,
-        username: &String, password: &Vec<u8>, nonce: &[u8; 12]) -> Result<DbPassword>;
+    async fn create_password(
+        &self,
+        user_id: &Uuid,
+        domain_name: &String,
+        username: &String,
+        password: &Vec<u8>,
+        nonce: &[u8; 12],
+    ) -> Result<DbPassword>;
     async fn get_password(&self, user_id: &Uuid, password_id: &Uuid) -> Result<DbPassword>;
     async fn get_passwords(&self, user_id: &Uuid) -> Result<Vec<DbPassword>>;
     async fn delete_password(&self, user_id: &Uuid, password_id: &Uuid) -> Result<()>;
@@ -95,15 +138,22 @@ impl Db for PostgreDb {
             .await?;
         Ok(session_id)
     }
-    async fn validate_session(&self, session_id: &String) -> Result<Uuid> {
-        let hashed_session_id = hash_with_sha3(session_id);
+    async fn validate_session(&self, session_id: &Uuid) -> Result<Uuid> {
+        let hashed_session_id = hash_with_sha3(&session_id.to_string());
         let sql = "SELECT user_id FROM sessions WHERE sessions.session_id = $1;";
-        let query = sqlx::query_scalar(sql)
-            .bind(hashed_session_id);
-        let user_id = query
-            .fetch_one(&self.pool)
-            .await?;
+        let query = sqlx::query_scalar(sql).bind(hashed_session_id);
+        let user_id = query.fetch_one(&self.pool).await?;
         Ok(user_id)
+    }
+
+    async fn delete_session(&self, session_id: &Uuid) -> Result<()> {
+        let hashed_session_id = hash_with_sha3(&session_id.to_string());
+        let sql = "DELETE FROM sessions WHERE sessions.session_id = $1;";
+        sqlx::query(sql)
+            .bind(hashed_session_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
     }
 
     async fn create_user(&self, username: &String, password: &String) -> Result<()> {
@@ -114,7 +164,7 @@ impl Db for PostgreDb {
             .await?;
 
         if exists {
-            return Err(error::Error::DatabaseError)
+            return Err(error::Error::DatabaseError);
         }
 
         let id = create_uuid_v4();
@@ -138,11 +188,8 @@ impl Db for PostgreDb {
 
     async fn get_user(&self, username: &String) -> Result<DbUser> {
         let sql = "SELECT * FROM users WHERE users.username = $1;";
-        let query = sqlx::query(sql)
-            .bind(username.to_lowercase());
-        let row = query
-            .fetch_one(&self.pool)
-            .await?;
+        let query = sqlx::query(sql).bind(username.to_lowercase());
+        let row = query.fetch_one(&self.pool).await?;
         Ok(DbUser::new(
             row.get("user_id"),
             row.get("username"),
@@ -153,12 +200,18 @@ impl Db for PostgreDb {
         ))
     }
 
-    async fn create_password(&self, user_id: &Uuid, domain_name: &String,
-            username: &String, password: &Vec<u8>, nonce: &[u8; 12]) -> Result<DbPassword> {
+    async fn create_password(
+        &self,
+        user_id: &Uuid,
+        domain_name: &String,
+        username: &String,
+        password: &Vec<u8>,
+        nonce: &[u8; 12],
+    ) -> Result<DbPassword> {
         let password_id = create_uuid_v4();
         let sql = "
-            INSERT INTO passwords 
-            (password_id, user_id, domain_name, username, password, nonce) 
+            INSERT INTO passwords
+            (password_id, user_id, domain_name, username, password, nonce)
             VALUES ($1, $2, $3, $4, $5, $6);
         ";
         sqlx::query(sql)
@@ -175,15 +228,11 @@ impl Db for PostgreDb {
 
     async fn get_password(&self, user_id: &Uuid, password_id: &Uuid) -> Result<DbPassword> {
         let sql = "
-            SELECT * FROM passwords WHERE 
+            SELECT * FROM passwords WHERE
             passwords.user_id = $1 AND passwords.password_id = $2;
         ";
-        let query = sqlx::query(sql)
-            .bind(user_id)
-            .bind(password_id);
-        let row = query
-            .fetch_one(&self.pool)
-            .await?;
+        let query = sqlx::query(sql).bind(user_id).bind(password_id);
+        let row = query.fetch_one(&self.pool).await?;
         Ok(DbPassword::new(
             row.get("password_id"),
             row.get("user_id"),
@@ -193,26 +242,24 @@ impl Db for PostgreDb {
             row.get("nonce"),
         ))
     }
-    
+
     async fn get_passwords(&self, user_id: &Uuid) -> Result<Vec<DbPassword>> {
         let sql = "SELECT * FROM passwords WHERE passwords.user_id = $1;";
-        let query = sqlx::query(sql)
-            .bind(user_id);
-        let rows = query
-            .fetch_all(&self.pool)
-            .await?;
+        let query = sqlx::query(sql).bind(user_id);
+        let rows = query.fetch_all(&self.pool).await?;
         Ok(rows
             .into_iter()
-            .map(|row| { DbPassword::new(
-                row.get("password_id"),
-                row.get("user_id"),
-                row.get("domain_name"),
-                row.get("username"),
-                row.get("password"),
-                row.get("nonce"),
-            ) })
-            .collect()
-        )
+            .map(|row| {
+                DbPassword::new(
+                    row.get("password_id"),
+                    row.get("user_id"),
+                    row.get("domain_name"),
+                    row.get("username"),
+                    row.get("password"),
+                    row.get("nonce"),
+                )
+            })
+            .collect())
     }
 
     async fn delete_password(&self, user_id: &Uuid, password_id: &Uuid) -> Result<()> {
@@ -246,6 +293,6 @@ fn create_session_id() -> String {
     rand::thread_rng()
         .sample_iter(&rand::distributions::Alphanumeric)
         .take(32)
-        .map( char::from )
+        .map(char::from)
         .collect()
 }

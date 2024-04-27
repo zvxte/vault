@@ -1,13 +1,16 @@
+use crate::database::{Db, DbUser};
+use crate::model::MessageResponse;
+use crate::routers::AppState;
+use crate::utils;
 use axum::{
     extract::{rejection::JsonRejection, Json, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
 };
-use serde::{Deserialize, Serialize};
 use crypto::Hasher;
-use crate::model::MessageResponse;
-use crate::database::{Db, DbUser};
-use crate::routers::AppState;
+use serde::{Deserialize, Serialize};
+use sqlx::types::Uuid;
+use std::str::FromStr;
 
 #[derive(Deserialize)]
 pub struct UserIn {
@@ -27,7 +30,7 @@ impl UserOut {
         Self {
             user_id: dbuser.user_id.to_string(),
             username: dbuser.username,
-            salt: dbuser.salt
+            salt: dbuser.salt,
         }
     }
 }
@@ -44,7 +47,9 @@ pub async fn post_users_register(
     let hasher = &state.hasher;
     let hashed_password = match hasher.hash_data(&user.password) {
         Ok(pwd) => pwd,
-        Err(_) => return MessageResponse::bad_request("Failed to register a new account".to_string()),
+        Err(_) => {
+            return MessageResponse::bad_request("Failed to register a new account".to_string())
+        }
     };
 
     let database = &state.database;
@@ -83,8 +88,23 @@ pub async fn post_users_login(
                     ("session_id", &session_id),
                 ],
                 Json(UserOut::from_dbuser(dbuser)),
-            ).into_response();
+            )
+                .into_response();
         }
     }
     MessageResponse::bad_request("Failed to login".to_string())
+}
+
+pub async fn post_users_logout(headers: HeaderMap, State(state): State<AppState<'_>>) -> Response {
+    let session_id = match utils::get_headers_value(&headers, "session_id") {
+        Ok(user_id) => match Uuid::from_str(&user_id) {
+            Ok(user_id) => user_id,
+            Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
+        },
+        Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
+    };
+    match state.database.delete_session(&session_id).await {
+        Ok(_) => return MessageResponse::ok("Session deleted".to_string()),
+        Err(_) => return MessageResponse::bad_request("Failed to delete session".to_string()),
+    }
 }
