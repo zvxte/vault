@@ -1,15 +1,18 @@
-use std::str::FromStr;
+use crate::database::{Db, DbPassword};
+use crate::model::{DataResponse, MessageResponse};
+use crate::routers::AppState;
+use crate::utils;
 use axum::{
-    extract::{State, Json, Path, rejection::{JsonRejection, PathRejection}},
-    response::Response,
+    extract::{
+        rejection::{JsonRejection, PathRejection},
+        Json, Path, State,
+    },
     http::HeaderMap,
+    response::Response,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::types::Uuid;
-use crate::routers::AppState;
-use crate::model::{MessageResponse, DataResponse};
-use crate::database::{Db, DbPassword};
-use crate::utils;
+use std::str::FromStr;
 
 #[derive(Deserialize, Debug)]
 pub struct PasswordIn {
@@ -45,7 +48,6 @@ pub async fn post_passwords(
     State(state): State<AppState<'_>>,
     password: Result<Json<PasswordIn>, JsonRejection>,
 ) -> Response {
-
     let password = match password {
         Ok(password) => password.0,
         Err(err) => return MessageResponse::bad_request(err.to_string()),
@@ -59,12 +61,18 @@ pub async fn post_passwords(
         Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
     };
 
-    match state.database.create_password(
-        &user_id, &password.domain_name, &password.username, &password.password, &password.nonce
-    ).await {
-        Ok(dbpassword) => DataResponse::created(
-            PasswordOut::from_dbpassword(dbpassword),
-        ),
+    match state
+        .database
+        .create_password(
+            &user_id,
+            &password.domain_name,
+            &password.username,
+            &password.password,
+            &password.nonce,
+        )
+        .await
+    {
+        Ok(dbpassword) => DataResponse::created(PasswordOut::from_dbpassword(dbpassword)),
         Err(_) => MessageResponse::bad_request("Failed to add a new password".to_string()),
     }
 }
@@ -78,7 +86,7 @@ pub async fn get_passwords_id(
         Ok(password_id) => password_id.0,
         Err(err) => return MessageResponse::bad_request(err.to_string()),
     };
-    
+
     let user_id = match utils::get_headers_value(&headers, "user_id") {
         Ok(user_id) => match Uuid::from_str(&user_id) {
             Ok(user_id) => user_id,
@@ -90,19 +98,16 @@ pub async fn get_passwords_id(
     match state.database.get_password(&user_id, &password_id).await {
         Ok(dbpassword) => {
             if dbpassword.user_id == user_id {
-                return DataResponse::ok(PasswordOut::from_dbpassword(dbpassword))
-            } else { 
-                return MessageResponse::unauthorized("Unauthorized access".to_string())
+                return DataResponse::ok(PasswordOut::from_dbpassword(dbpassword));
+            } else {
+                return MessageResponse::unauthorized("Unauthorized access".to_string());
             }
-        },
+        }
         Err(_) => return MessageResponse::bad_request("Failed to get a password".to_string()),
     }
 }
 
-pub async fn get_passwords(
-    headers: HeaderMap,
-    State(state): State<AppState<'_>>,
-) -> Response {
+pub async fn get_passwords(headers: HeaderMap, State(state): State<AppState<'_>>) -> Response {
     let user_id = match utils::get_headers_value(&headers, "user_id") {
         Ok(user_id) => match Uuid::from_str(&user_id) {
             Ok(user_id) => user_id,
@@ -119,8 +124,8 @@ pub async fn get_passwords(
     DataResponse::ok(
         dbpasswords
             .into_iter()
-            .map(|dbpassword| PasswordOut::from_dbpassword(dbpassword) )
-            .collect::<Vec<PasswordOut>>()
+            .map(|dbpassword| PasswordOut::from_dbpassword(dbpassword))
+            .collect::<Vec<PasswordOut>>(),
     )
 }
 

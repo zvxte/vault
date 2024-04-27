@@ -1,5 +1,5 @@
-use axum::http::HeaderMap;
 use crate::error::Error;
+use axum::http::HeaderMap;
 
 pub fn get_headers_value(headers: &HeaderMap, key: &str) -> Result<String, Error> {
     match headers.get(key) {

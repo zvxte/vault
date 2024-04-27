@@ -1,6 +1,6 @@
-use tokio::net::TcpListener;
 use axum::Router;
 use server_lib::routers;
+use tokio::net::TcpListener;
 
 #[tokio::main]
 async fn main() {

@@ -1,9 +1,9 @@
-use serde::Serialize;
 use axum::{
-    http::StatusCode,
     extract::Json,
-    response::{Response, IntoResponse},
+    http::StatusCode,
+    response::{IntoResponse, Response},
 };
+use serde::Serialize;
 
 const CONTENT_TYPE_JSON: [(&str, &str); 1] = [("Content-Type", "application/json")];
 
@@ -21,21 +21,25 @@ impl<T: Serialize> DataResponse<T> {
     }
 
     pub fn ok(data: T) -> Response {
-        Self { status_code: StatusCode::OK, data }.into_response()
+        Self {
+            status_code: StatusCode::OK,
+            data,
+        }
+        .into_response()
     }
 
     pub fn created(data: T) -> Response {
-        Self { status_code: StatusCode::CREATED, data }.into_response()
+        Self {
+            status_code: StatusCode::CREATED,
+            data,
+        }
+        .into_response()
     }
 }
 
 impl<T: Serialize> IntoResponse for DataResponse<T> {
     fn into_response(self) -> Response {
-        (
-            self.status_code,
-            CONTENT_TYPE_JSON,
-            Json(self.data),
-        ).into_response()
+        (self.status_code, CONTENT_TYPE_JSON, Json(self.data)).into_response()
     }
 }
 
@@ -48,32 +52,48 @@ pub struct MessageResponse {
 
 impl MessageResponse {
     pub fn _new(status_code: StatusCode, message: String) -> Response {
-        Self { status_code, message }.into_response()
+        Self {
+            status_code,
+            message,
+        }
+        .into_response()
     }
 
     pub fn ok(message: String) -> Response {
-        Self { status_code: StatusCode::OK, message }.into_response()
+        Self {
+            status_code: StatusCode::OK,
+            message,
+        }
+        .into_response()
     }
 
     pub fn created(message: String) -> Response {
-        Self { status_code: StatusCode::CREATED, message }.into_response()
+        Self {
+            status_code: StatusCode::CREATED,
+            message,
+        }
+        .into_response()
     }
 
     pub fn bad_request(message: String) -> Response {
-        Self { status_code: StatusCode::BAD_REQUEST, message }.into_response()
+        Self {
+            status_code: StatusCode::BAD_REQUEST,
+            message,
+        }
+        .into_response()
     }
 
     pub fn unauthorized(message: String) -> Response {
-        Self { status_code: StatusCode::UNAUTHORIZED, message }.into_response()
+        Self {
+            status_code: StatusCode::UNAUTHORIZED,
+            message,
+        }
+        .into_response()
     }
 }
 
 impl IntoResponse for MessageResponse {
     fn into_response(self) -> Response {
-        (
-            self.status_code,
-            CONTENT_TYPE_JSON,
-            Json(self),
-        ).into_response()
+        (self.status_code, CONTENT_TYPE_JSON, Json(self)).into_response()
     }
 }

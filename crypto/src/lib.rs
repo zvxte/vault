@@ -1,5 +1,5 @@
-mod hash;
 mod encryption;
+mod hash;
 
-pub use hash::{Hasher, Argon2Hasher, hash_with_sha3};
-pub use encryption::{Encrypter, AesGcmEncrypter};
+pub use encryption::{AesGcmEncrypter, Encrypter};
+pub use hash::{hash_with_sha3, Argon2Hasher, Hasher};
