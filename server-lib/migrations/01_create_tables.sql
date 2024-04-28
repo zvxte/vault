@@ -3,8 +3,8 @@ CREATE TABLE users (
     username VARCHAR(16) NOT NULL,
     password VARCHAR(128) NOT NULL,
     salt BYTEA NOT NULL,
-    created_at INTEGER NOT NULL,
-    connected_at INTEGER NOT NULL
+    created_at BIGINT NOT NULL,
+    connected_at BIGINT NOT NULL
 );
 
 CREATE TABLE passwords (
