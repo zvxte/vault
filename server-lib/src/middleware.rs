@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use crate::{database::Db, model::MessageResponse, routers::AppState, utils};
 use axum::{
     extract::{Request, State},
@@ -7,7 +5,6 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use sqlx::types::Uuid;
 
 pub async fn validate_session(
     State(state): State<AppState<'_>>,
@@ -15,13 +12,11 @@ pub async fn validate_session(
     next: Next,
 ) -> Response {
     let session_id = match utils::get_headers_value(request.headers(), "session_id") {
-        Ok(session_id) => match Uuid::from_str(&session_id) {
-            Ok(session_id) => session_id,
-            Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
-        },
+        Ok(session_id) => session_id,
         Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
     };
-    let user_id = match state.database.validate_session(&session_id).await {
+    let hashed_session_id = crypto::hash_with_sha3(&session_id);
+    let user_id = match state.database.validate_session(&hashed_session_id).await {
         Ok(user_id) => user_id,
         Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
     };

@@ -31,8 +31,8 @@ pub struct PasswordOut {
     nonce: [u8; 12],
 }
 
-impl PasswordOut {
-    pub fn from_dbpassword(dbpassword: DbPassword) -> Self {
+impl From<DbPassword> for PasswordOut {
+    fn from(dbpassword: DbPassword) -> Self {
         Self {
             password_id: dbpassword.password_id.to_string(),
             domain_name: dbpassword.domain_name,
@@ -61,9 +61,11 @@ pub async fn post_passwords(
         Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
     };
 
+    let password_id = utils::create_uuid_v4();
     match state
         .database
         .create_password(
+            &password_id,
             &user_id,
             &password.domain_name,
             &password.username,
@@ -72,7 +74,7 @@ pub async fn post_passwords(
         )
         .await
     {
-        Ok(dbpassword) => DataResponse::created(PasswordOut::from_dbpassword(dbpassword)),
+        Ok(dbpassword) => DataResponse::created(PasswordOut::from(dbpassword)),
         Err(_) => MessageResponse::bad_request("Failed to add a new password".to_string()),
     }
 }
@@ -98,7 +100,7 @@ pub async fn get_passwords_id(
     match state.database.get_password(&user_id, &password_id).await {
         Ok(dbpassword) => {
             if dbpassword.user_id == user_id {
-                return DataResponse::ok(PasswordOut::from_dbpassword(dbpassword));
+                return DataResponse::ok(PasswordOut::from(dbpassword));
             } else {
                 return MessageResponse::unauthorized("Unauthorized access".to_string());
             }
@@ -124,7 +126,7 @@ pub async fn get_passwords(headers: HeaderMap, State(state): State<AppState<'_>>
     DataResponse::ok(
         dbpasswords
             .into_iter()
-            .map(|dbpassword| PasswordOut::from_dbpassword(dbpassword))
+            .map(|dbpassword| PasswordOut::from(dbpassword))
             .collect::<Vec<PasswordOut>>(),
     )
 }

@@ -9,8 +9,6 @@ use axum::{
 };
 use crypto::Hasher;
 use serde::{Deserialize, Serialize};
-use sqlx::types::Uuid;
-use std::str::FromStr;
 
 #[derive(Deserialize)]
 pub struct UserIn {
@@ -25,8 +23,8 @@ pub struct UserOut {
     salt: [u8; 32],
 }
 
-impl UserOut {
-    pub fn from_dbuser(dbuser: DbUser) -> Self {
+impl From<DbUser> for UserOut {
+    fn from(dbuser: DbUser) -> Self {
         Self {
             user_id: dbuser.user_id.to_string(),
             username: dbuser.username,
@@ -51,9 +49,22 @@ pub async fn post_users_register(
             return MessageResponse::bad_request("Failed to register a new account".to_string())
         }
     };
+    let user_id = utils::create_uuid_v4();
+    let salt = utils::create_salt();
+    let timestamp = utils::get_current_timestamp();
 
-    let database = &state.database;
-    match database.create_user(&user.username, &hashed_password).await {
+    match state
+        .database
+        .create_user(
+            &user_id,
+            &user.username,
+            &hashed_password,
+            &salt,
+            timestamp,
+            timestamp,
+        )
+        .await
+    {
         Ok(_) => MessageResponse::created("Account created".to_string()),
         Err(_) => MessageResponse::bad_request("Failed to register a new account".to_string()),
     }
@@ -68,18 +79,29 @@ pub async fn post_users_login(
         Err(err) => return MessageResponse::bad_request(err.to_string()),
     };
 
-    let database = &state.database;
-    let dbuser = match database.get_user(&user.username).await {
+    let dbuser = match state.database.get_user(&user.username).await {
         Ok(dbuser) => dbuser,
         Err(_) => return MessageResponse::bad_request("Failed to login".to_string()),
     };
 
     if let Ok(result) = state.hasher.cmp_data(&user.password, &dbuser.password) {
         if result {
-            let session_id = match database.create_session(&dbuser.user_id).await {
-                Ok(session_id) => session_id,
-                Err(_) => return MessageResponse::bad_request("Failed to login".to_string()),
+            let session_id = utils::create_session_id();
+            let hashed_session_id = crypto::hash_with_sha3(&session_id);
+            if let Err(_) = state
+                .database
+                .create_session(&hashed_session_id, &dbuser.user_id)
+                .await
+            {
+                return MessageResponse::bad_request("Failed to create session".to_string());
             };
+
+            let connected_at = utils::get_current_timestamp();
+            state
+                .database
+                .update_user_timestamp(&dbuser.user_id, connected_at)
+                .await
+                .unwrap_or(());
 
             return (
                 StatusCode::OK,
@@ -87,7 +109,7 @@ pub async fn post_users_login(
                     ("Content-Type", "application/json"),
                     ("session_id", &session_id),
                 ],
-                Json(UserOut::from_dbuser(dbuser)),
+                Json(UserOut::from(dbuser)),
             )
                 .into_response();
         }
@@ -97,13 +119,11 @@ pub async fn post_users_login(
 
 pub async fn post_users_logout(headers: HeaderMap, State(state): State<AppState<'_>>) -> Response {
     let session_id = match utils::get_headers_value(&headers, "session_id") {
-        Ok(user_id) => match Uuid::from_str(&user_id) {
-            Ok(user_id) => user_id,
-            Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
-        },
+        Ok(user_id) => user_id,
         Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
     };
-    match state.database.delete_session(&session_id).await {
+    let hashed_session_id = crypto::hash_with_sha3(&session_id);
+    match state.database.delete_session(&hashed_session_id).await {
         Ok(_) => return MessageResponse::ok("Session deleted".to_string()),
         Err(_) => return MessageResponse::bad_request("Failed to delete session".to_string()),
     }
