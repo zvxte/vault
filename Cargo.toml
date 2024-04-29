@@ -3,5 +3,6 @@ members = [
     "server-bin",
     "server-lib",
     "crypto",
+    "client/src-tauri",
 ]
 resolver = "2"
