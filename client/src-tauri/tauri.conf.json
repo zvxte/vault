@@ -3,7 +3,8 @@
     "beforeBuildCommand": "",
     "beforeDevCommand": "",
     "devPath": "../ui",
-    "distDir": "../ui"
+    "distDir": "../ui",
+    "withGlobalTauri": true
   },
   "package": {
     "productName": "vault",
@@ -11,7 +12,11 @@
   },
   "tauri": {
     "allowlist": {
-      "all": false
+      "all": false,
+      "http": {
+        "request": true,
+        "scope": ["http://*", "https://*"]
+      }
     },
     "bundle": {
       "active": true,
@@ -58,7 +63,7 @@
         "height": 800,
         "resizable": true,
         "title": "vault",
-        "width": 600
+        "width": 1000
       }
     ]
   }

@@ -7,6 +7,148 @@
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
+
+    <div class="app-container">
+        <!-- TABS -->
+        <div class="tabs-container">
+            <div class="tab passwords-tab">
+                <button class="btn tab-btn passwords-tab-btn" type="button">passwords</button>
+            </div>
+            <div class="tab notes-tab">
+                <button class="btn tab-btn notes-tab-btn" type="button">notes</button>
+            </div>
+        </div>
+
+        <!-- ENTRIES -->
+        <div class="entries-container">
+            <div class="search">
+                <input class="input search-input" type="search" placeholder="search">
+            </div>
+            <div class="new-entry">
+                <button class="btn new-entry-btn" type="button">new</button>
+            </div>
+
+            <!-- Password entries -->
+            <div class="entries password-entries d-none"></div>
+
+            <!-- Note entries -->
+            <div class="entries note-entries d-none">
+                <div class="entry note-entry" data-note-id="id" data-title="title" data-content="content">
+                    <div class="entry-pair-col">
+                        <label class="entry-label">title</label>
+                        <span class="entry-value">title</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- EDITORS -->
+        <div class="editor-container">
+            <!-- Editor to create new password entry -->
+            <div class="editor new-password-editor d-none">
+                <div class="editor-header">
+                    <span class="editor-header-value">create new password</span>
+                </div>
+                <div class="editor-entry">
+                    <div class="editor-pair-col">
+                        <label class="editor-label">domain</label>
+                        <input class="input editor-input" type="text">
+                    </div>
+                    <div class="editor-pair-col">
+                        <label class="editor-label">username</label>
+                        <input class="input editor-input" type="text">
+                    </div>
+                    <div class="editor-pair-col">
+                        <label class="editor-label">password</label>
+                        <input class="input editor-input" type="password">
+                    </div>
+                </div>
+                <div class="editor-controls">
+                    <button class="btn editor-btn editor-cancel-btn" type="button">cancel</button>
+                    <button class="btn editor-btn editor-save-btn" type="button">save</button>
+                </div>
+            </div>
+
+            <!-- Editor to edit exising password entry -->
+            <div class="editor password-editor d-none">
+                <div class="editor-header">
+                    <span class="editor-header-value">edit password</span>
+                </div>
+                <div class="editor-entry">
+                    <span class="password-editor-id" hidden aria-hidden="true" data-password-id=""></span>
+                    <div class="editor-pair-col">
+                        <label class="editor-label">domain</label>
+                        <input class="input editor-input password-editor-domain" type="text" value="">
+                    </div>
+                    <div class="editor-pair-col">
+                        <label class="editor-label">username</label>
+                        <input class="input editor-input password-editor-username" type="text" value="">
+                    </div>
+                    <div class="editor-pair-col">
+                        <label class="editor-label">password</label>
+                        <input class="input editor-input password-editor-password" type="password" value="">
+                    </div>
+                </div>
+                <div class="editor-controls">
+                    <button class="btn editor-btn editor-cancel-btn" type="button">cancel</button>
+                    <div>
+                        <button class="btn editor-btn editor-delete-btn" type="button">delete</button>
+                        <button class="btn editor-btn editor-save-btn" type="button">save</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Editor to create new note entry -->
+            <div class="editor new-note-editor d-none">
+                <div class="editor-header">
+                    <span class="editor-header-value">create new note</span>
+                </div>
+                <div class="editor-entry">
+                    <div class="editor-pair-col">
+                        <label class="editor-label">title</label>
+                        <input class="input editor-input" type="text">
+                    </div>
+                    <div class="editor-pair-col">
+                        <label class="editor-label">content</label>
+                        <textarea class="input editor-input editor-textarea"></textarea>
+                    </div>
+                </div>
+                <div class="editor-controls">
+                    <button class="btn editor-btn editor-cancel-btn" type="button">cancel</button>
+                    <button class="btn editor-btn editor-save-btn" type="button">save</button>
+                </div>
+            </div>
+
+            <!-- Editor to edit existing note entry -->
+            <div class="editor note-editor d-none">
+                <div class="editor-header">
+                    <span class="editor-header-value">edit note</span>
+                </div>
+                <div class="editor-entry">
+                    <span class="note-editor-id" hidden aria-hidden="true" data-note-id=""></span>
+                    <div class="editor-pair-col">
+                        <label class="editor-label">title</label>
+                        <input class="input editor-input note-editor-title" type="text">
+                    </div>
+                    <div class="editor-pair-col">
+                        <label class="editor-label">content</label>
+                        <textarea class="input editor-input editor-textarea note-editor-content"></textarea>
+                    </div>
+                </div>
+                <div class="editor-controls">
+                    <button class="btn editor-btn editor-cancel-btn" type="button">cancel</button>
+                    <div>
+                        <button class="btn editor-btn editor-delete-btn" type="button">delete</button>
+                        <button class="btn editor-btn editor-save-btn" type="button">save</button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
     <script src="./script.js"></script>
+
 </body>
 </html>
