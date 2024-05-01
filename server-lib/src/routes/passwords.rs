@@ -154,3 +154,44 @@ pub async fn delete_passwords_id(
         Err(_) => MessageResponse::bad_request("Failed to delete a password".to_string()),
     }
 }
+
+pub async fn patch_passwords_id(
+    headers: HeaderMap,
+    State(state): State<AppState<'_>>,
+    password_id: Result<Path<Uuid>, PathRejection>,
+    password: Result<Json<PasswordIn>, JsonRejection>,
+) -> Response {
+    let password = match password {
+        Ok(password) => password.0,
+        Err(err) => return MessageResponse::bad_request(err.to_string()),
+    };
+
+    let password_id = match password_id {
+        Ok(password_id) => password_id,
+        Err(err) => return MessageResponse::bad_request(err.to_string()),
+    };
+
+    let user_id = match utils::get_headers_value(&headers, "user_id") {
+        Ok(user_id) => match Uuid::from_str(&user_id) {
+            Ok(user_id) => user_id,
+            Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
+        },
+        Err(_) => return MessageResponse::unauthorized("Unauthorized access".to_string()),
+    };
+
+    match state
+        .database
+        .patch_password(
+            &password_id,
+            &user_id,
+            &password.domain_name,
+            &password.username,
+            &password.password,
+            &password.nonce,
+        )
+        .await
+    {
+        Ok(dbpassword) => DataResponse::created(PasswordOut::from(dbpassword)),
+        Err(_) => MessageResponse::bad_request("Failed to edit a password".to_string()),
+    }
+}

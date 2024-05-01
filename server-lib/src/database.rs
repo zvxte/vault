@@ -117,6 +117,15 @@ pub trait Db {
     async fn get_password(&self, user_id: &Uuid, password_id: &Uuid) -> Result<DbPassword>;
     async fn get_passwords(&self, user_id: &Uuid) -> Result<Vec<DbPassword>>;
     async fn delete_password(&self, user_id: &Uuid, password_id: &Uuid) -> Result<()>;
+    async fn patch_password(
+        &self,
+        password_id: &Uuid,
+        user_id: &Uuid,
+        domain_name: &String,
+        username: &String,
+        password: &Vec<u8>,
+        nonce: &[u8; 12],
+    ) -> Result<DbPassword>;
 }
 
 #[derive(Clone)]
@@ -229,17 +238,16 @@ impl Db for PostgreDb {
         nonce: &[u8; 12],
     ) -> Result<DbPassword> {
         let sql = "
-            INSERT INTO passwords
-            (password_id, user_id, domain_name, username, password, nonce)
-            VALUES ($1, $2, $3, $4, $5, $6);
+            UPDATE passwords SET
+            domain_name = $1, username = $2, password = $3, nonce = $4
+            WHERE password_id = $5;
         ";
         sqlx::query(sql)
-            .bind(password_id)
-            .bind(user_id)
             .bind(domain_name)
             .bind(username)
             .bind(password)
             .bind(nonce)
+            .bind(password_id)
             .execute(&self.pool)
             .await?;
         self.get_password(&user_id, &password_id).await
@@ -291,5 +299,31 @@ impl Db for PostgreDb {
             .execute(&self.pool)
             .await?;
         Ok(())
+    }
+
+    async fn patch_password(
+        &self,
+        password_id: &Uuid,
+        user_id: &Uuid,
+        domain_name: &String,
+        username: &String,
+        password: &Vec<u8>,
+        nonce: &[u8; 12],
+    ) -> Result<DbPassword> {
+        let sql = "
+        INSERT INTO passwords
+        (password_id, user_id, domain_name, username, password, nonce)
+        VALUES ($1, $2, $3, $4, $5, $6);
+        ";
+        sqlx::query(sql)
+            .bind(password_id)
+            .bind(user_id)
+            .bind(domain_name)
+            .bind(username)
+            .bind(password)
+            .bind(nonce)
+            .execute(&self.pool)
+            .await?;
+        self.get_password(&user_id, &password_id).await
     }
 }

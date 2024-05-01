@@ -2,7 +2,7 @@ use crate::database::PostgreDb;
 use crate::middleware;
 use crate::routes::{passwords, users};
 use axum::{
-    routing::{delete, get, post},
+    routing::{delete, get, patch, post},
     Router,
 };
 use crypto::Argon2Hasher;
@@ -40,6 +40,7 @@ pub async fn passwords_router() -> Router {
         .route("/", get(passwords::get_passwords))
         .route("/:password_id", get(passwords::get_passwords_id))
         .route("/:password_id", delete(passwords::delete_passwords_id))
+        .route("/:password_id", patch(passwords::patch_passwords_id))
         .route_layer(axum::middleware::from_fn_with_state(
             app_state.clone(),
             middleware::validate_session,
