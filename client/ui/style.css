@@ -56,6 +56,71 @@ body {
     flex-direction: row;
 }
 
+/* ACCOUNT */
+.account-container {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+}
+
+.account-container:hover .account-menu {
+    display: flex;
+}
+
+.account-menu {
+    display: none;
+    flex-direction: column;
+}
+
+.account-btn {
+    text-transform: uppercase;
+    font-weight: bold;
+
+    padding: 0.5rem;
+    width: 8rem;
+
+    background-color: var(--tertiary-bg);
+    color: var(--tertiary-fg);
+}
+
+/* NOTIFICATIONS */
+.notifications-container {
+    position: absolute;
+    word-wrap: break-word;
+    text-wrap: wrap;
+    text-align: center;
+
+    font-weight: 500;
+    right: 0;
+    top: 0;
+    width: 15rem;
+    max-width: 15rem;
+}
+
+.notification-value {
+    width: 15rem;
+    max-width: 15rem;
+}
+
+.success-notification {
+    position: absolute;
+    
+    padding: 0.5rem;
+    right: 0;
+    top: 0;
+    
+    background-color: var(--main-success);
+}
+
+.failure-notification {
+    position: absolute;
+    
+    padding: 0.5rem;
+    right: 0;
+    top: 0;
+    
+    background-color: var(--main-failure);
+}
 
 /* TABS */
 .tabs-container {
@@ -71,25 +136,21 @@ body {
     background-color: var(--tertiary-bg);
 }
 
-.tab {
-    border-left: 3px solid transparent;
-}
-
-.tab-selected {
-    border-left: 3px solid var(--main-accent);
-}
-
 .tab-btn {
     text-transform: uppercase;
     font-weight: bold;
-
+    
     padding: 0.5rem;
     width: 100%;
-
+    
+    border-left: 3px solid transparent;
     background-color: var(--tertiary-bg);
     color: var(--main-fg);
 }
 
+.tab-btn-selected {
+    border-left: 3px solid var(--main-accent);
+}
 
 /* ENTRIES */
 .entries-container {
@@ -129,6 +190,9 @@ body {
 }
 
 .new-entry {
+    display: flex;
+    flex-direction: row;
+
     padding: 0.5rem;
 }
 
@@ -139,8 +203,9 @@ body {
     width: 100%;
     padding: 0.5rem;
 
-    background-color: var(--light-bg);
+    /* background-color: var(--light-bg); */
     color: var(--secondary-fg);
+    background: radial-gradient(circle, var(--light-bg), var(--main-bg));
 }
 
 .entries {
@@ -158,6 +223,10 @@ body {
     
     border-left: 3px solid transparent;
     background-color: var(--secondary-bg);
+}
+
+.entry-selected {
+    border-left: 3px solid var(--main-accent);
 }
 
 .entry:hover {
@@ -287,6 +356,16 @@ body {
 
 .editor-save-btn {
     background-color: var(--secondary-success);
+}
+
+.editor-account-btn {
+    text-transform: uppercase;
+    font-weight: bold;
+
+    width: 7rem;
+    padding: 0.5rem;
+
+    color: var(--tertiary-bg);
 }
 
 /*  */

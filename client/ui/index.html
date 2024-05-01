@@ -9,6 +9,26 @@
 <body>
 
     <div class="app-container">
+        <!-- ACCOUNT -->
+        <div class="account-container">
+            <button class="btn account-btn" type="button">account</button>
+            <div class="account-menu">
+                <button class="btn account-btn login-btn" type="button">login</button>
+                <button class="btn account-btn register-btn" type="button">register</button>
+                <button class="btn account-btn logout-btn d-none" type="button">logout</button>
+            </div>
+        </div>
+
+        <!-- NOTIFICATIONS -->
+        <div class="notifications-container">
+            <div class="notification success-notification d-none">
+                <span class="notification-value success-notification-value"></span>
+            </div>
+            <div class="notification failure-notification d-none">
+                <span class="notification-value failure-notification-value"></span>
+            </div>
+        </div>
+
         <!-- TABS -->
         <div class="tabs-container">
             <div class="tab passwords-tab">
@@ -21,11 +41,12 @@
 
         <!-- ENTRIES -->
         <div class="entries-container">
+            <div class="new-entry">
+                <button class="btn new-entry-btn new-password-btn" type="button">new password</button>
+                <button class="btn new-entry-btn new-note-btn" type="button">new note</button>
+            </div>
             <div class="search">
                 <input class="input search-input" type="search" placeholder="search">
-            </div>
-            <div class="new-entry">
-                <button class="btn new-entry-btn" type="button">new</button>
             </div>
 
             <!-- Password entries -->
@@ -33,12 +54,12 @@
 
             <!-- Note entries -->
             <div class="entries note-entries d-none">
-                <div class="entry note-entry" data-note-id="id" data-title="title" data-content="content">
+                <!-- <div class="entry note-entry" data-note-id="id" data-title="title" data-content="content">
                     <div class="entry-pair-col">
                         <label class="entry-label">title</label>
                         <span class="entry-value">title</span>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
 
@@ -53,20 +74,20 @@
                 <div class="editor-entry">
                     <div class="editor-pair-col">
                         <label class="editor-label">domain</label>
-                        <input class="input editor-input" type="text">
+                        <input class="input editor-input new-password-editor-domain" type="text">
                     </div>
                     <div class="editor-pair-col">
                         <label class="editor-label">username</label>
-                        <input class="input editor-input" type="text">
+                        <input class="input editor-input new-password-editor-username" type="text">
                     </div>
                     <div class="editor-pair-col">
                         <label class="editor-label">password</label>
-                        <input class="input editor-input" type="password">
+                        <input class="input editor-input new-password-editor-password" type="password">
                     </div>
                 </div>
                 <div class="editor-controls">
                     <button class="btn editor-btn editor-cancel-btn" type="button">cancel</button>
-                    <button class="btn editor-btn editor-save-btn" type="button">save</button>
+                    <button class="btn editor-btn editor-save-btn new-password-editor-save-btn" type="button">save</button>
                 </div>
             </div>
 
@@ -93,8 +114,8 @@
                 <div class="editor-controls">
                     <button class="btn editor-btn editor-cancel-btn" type="button">cancel</button>
                     <div>
-                        <button class="btn editor-btn editor-delete-btn" type="button">delete</button>
-                        <button class="btn editor-btn editor-save-btn" type="button">save</button>
+                        <button class="btn editor-btn editor-delete-btn password-editor-delete-btn" type="button">delete</button>
+                        <button class="btn editor-btn editor-save-btn password-editor-save-btn" type="button">save</button>
                     </div>
                 </div>
             </div>
@@ -145,10 +166,58 @@
                 </div>
             </div>
 
+            <!-- Editor to register -->
+            <div class="editor register-editor d-none">
+                <div class="editor-header">
+                    <span class="editor-header-value">create new account</span>
+                </div>
+                <div class="editor-entry">
+                    <div class="editor-pair-col">
+                        <label class="editor-label">username</label>
+                        <input class="input editor-input editor-register-username" type="text">
+                    </div>
+                    <div class="editor-pair-col">
+                        <label class="editor-label">password</label>
+                        <input class="input editor-input editor-register-password" type="password">
+                    </div>
+                    <div class="editor-pair-col">
+                        <label class="editor-label">server address</label>
+                        <input class="input editor-input editor-register-server-address" type="text" value="http://127.0.0.1:5000">
+                    </div>
+                </div>
+                <div class="editor-controls">
+                    <button class="btn editor-btn editor-cancel-btn" type="button">cancel</button>
+                    <button class="btn editor-account-btn editor-register-btn" type="button">register</button>
+                </div>
+            </div>
+
+            <!-- Editor to login -->
+            <div class="editor login-editor d-none">
+                <div class="editor-header">
+                    <span class="editor-header-value">login to your account</span>
+                </div>
+                <div class="editor-entry">
+                    <div class="editor-pair-col">
+                        <label class="editor-label">username</label>
+                        <input class="input editor-input editor-login-username" type="text">
+                    </div>
+                    <div class="editor-pair-col">
+                        <label class="editor-label">password</label>
+                        <input class="input editor-input editor-login-password" type="password"></input>
+                    </div>
+                    <div class="editor-pair-col">
+                        <label class="editor-label">server address</label>
+                        <input class="input editor-input editor-login-server-address" type="text" value="http://127.0.0.1:5000">
+                    </div>
+                </div>
+                <div class="editor-controls">
+                    <button class="btn editor-btn editor-cancel-btn" type="button">cancel</button>
+                    <button class="btn editor-account-btn editor-login-btn" type="button">login</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <script src="./script.js"></script>
-
 </body>
 </html>
