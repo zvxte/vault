@@ -11,13 +11,9 @@ pub struct AesGcmEncrypter {
 }
 
 impl AesGcmEncrypter {
-    fn _build(plain_password: String, salt: String) -> Result<Self, argon2::Error> {
+    pub fn build(plain_password: String, salt: &[u8; 32]) -> Result<Self, argon2::Error> {
         let mut key = [0u8; 32];
-        Argon2::default().hash_password_into(
-            plain_password.as_bytes(),
-            salt.as_bytes(),
-            &mut key,
-        )?;
+        Argon2::default().hash_password_into(plain_password.as_bytes(), salt, &mut key)?;
         let key = key.into();
         Ok(Self { key })
     }
@@ -28,7 +24,7 @@ impl Encrypter for AesGcmEncrypter {
         let cipher = Aes256Gcm::new(&self.key);
         let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
         let data = cipher.encrypt(&nonce, data.as_bytes().as_ref())?;
-        Ok(EncryptedData::new(nonce.into(), data))
+        Ok(EncryptedData::new(data, nonce.into()))
     }
 
     fn decrypt(&self, encrypted_data: EncryptedData) -> Result<String, aes_gcm::Error> {
@@ -42,13 +38,13 @@ impl Encrypter for AesGcmEncrypter {
 }
 
 pub struct EncryptedData {
-    nonce: [u8; 12],
-    content: Vec<u8>,
+    pub content: Vec<u8>,
+    pub nonce: [u8; 12],
 }
 
 impl EncryptedData {
-    fn new(nonce: [u8; 12], content: Vec<u8>) -> Self {
-        Self { nonce, content }
+    fn new(content: Vec<u8>, nonce: [u8; 12]) -> Self {
+        Self { content, nonce }
     }
 }
 
@@ -58,11 +54,8 @@ mod tests {
 
     #[test]
     fn encryption_decryption() {
-        let encrypter = AesGcmEncrypter::_build(
-            "my_master_password".to_string(),
-            "my_master_salt".to_string(),
-        )
-        .unwrap();
+        let salt = [0u8; 32];
+        let encrypter = AesGcmEncrypter::build("my_master_password".to_string(), &salt).unwrap();
         let plain_password = "my_password".to_string();
         let encrypted_data = encrypter.encrypt(plain_password.clone()).unwrap();
         let decrypted_password = encrypter.decrypt(encrypted_data).unwrap();
