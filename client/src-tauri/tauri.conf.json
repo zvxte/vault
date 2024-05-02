@@ -33,7 +33,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "github.com-zvxte-vault",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
@@ -62,8 +62,6 @@
         "fullscreen": false,
         "height": 800,
         "width": 1200,
-        "min-height": 300,
-        "min-width": 300,
         "resizable": true,
         "title": "vault"
       }
