@@ -12,7 +12,7 @@ async fn main() {
         .nest("/passwords", passwords_router.await)
         .nest("/notes", notes_router.await);
 
-    let address = "127.0.0.1:5000";
+    let address = std::env::var("SERVER_URL").expect("SERVER_URL not set");
     let listener = TcpListener::bind(address).await.unwrap();
 
     axum::serve(listener, app).await.unwrap();
