@@ -393,6 +393,7 @@ class App  {
                 })
         })
 
+        // automatically select passwords tab after login
         const passwordsTabBtn = document.querySelector(".passwords-tab-btn");
         const passwordEntries = document.querySelector(".password-entries");
         this.selectEntries(passwordEntries, passwordsTabBtn);
@@ -455,8 +456,7 @@ class App  {
             this.addNoteEntry(note);
         });
 
-        // enable editor buttons
-        // passwords
+        // enable passwords editor buttons
         const newPasswordEditorSaveBtn = document.querySelector(".new-password-editor-save-btn");
         newPasswordEditorSaveBtn.addEventListener("click", async () => {
             const domainName = document.querySelector(".new-password-editor-domain").value;
@@ -514,7 +514,7 @@ class App  {
                 .catch((error) => { this.showFailureNotification(error) })
         });
 
-        // notes
+        // enable notes editor buttons
         const newNoteEditorSaveBtn = document.querySelector(".new-note-editor-save-btn");
         newNoteEditorSaveBtn.addEventListener("click", async () => {
             const title = document.querySelector(".new-note-editor-title").value;
@@ -586,7 +586,7 @@ class App  {
                 .catch((error) => { this.showFailureNotification(error) })
         });
 
-        // search support
+        // enable search
         const searchInput = document.querySelector(".search-input");
         searchInput.addEventListener("input", (event) => {
             let value = event.target.value.toLowerCase();

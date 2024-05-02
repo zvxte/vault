@@ -1,5 +1,4 @@
 :root {
-    /* colors go from lightest to darkest */
     --main-bg: #2a2b2e;
     --secondary-bg: #252629;
     --tertiary-bg: #212224;
@@ -264,7 +263,7 @@ body {
 }
 
 
-/* EDITOR */
+/* EDITORS */
 .editor-container {
     display: flex;
     flex-direction: column;
