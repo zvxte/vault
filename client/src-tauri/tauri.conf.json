@@ -61,9 +61,11 @@
       {
         "fullscreen": false,
         "height": 800,
+        "width": 1200,
+        "min-height": 300,
+        "min-width": 300,
         "resizable": true,
-        "title": "vault",
-        "width": 1200
+        "title": "vault"
       }
     ]
   }
