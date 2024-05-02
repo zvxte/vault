@@ -1,6 +1,6 @@
 use crate::database::PostgreDb;
 use crate::middleware;
-use crate::routes::{passwords, users};
+use crate::routes::{notes, passwords, users};
 use axum::{
     routing::{delete, get, patch, post},
     Router,
@@ -41,6 +41,26 @@ pub async fn passwords_router() -> Router {
         .route("/:password_id", get(passwords::get_passwords_id))
         .route("/:password_id", delete(passwords::delete_passwords_id))
         .route("/:password_id", patch(passwords::patch_passwords_id))
+        .route_layer(axum::middleware::from_fn_with_state(
+            app_state.clone(),
+            middleware::validate_session,
+        ))
+        .with_state(app_state)
+}
+
+pub async fn notes_router() -> Router {
+    let app_state = AppState {
+        hasher: Argon2Hasher::new(),
+        database: PostgreDb::build(env::var("DATABASE_URL").expect("DATABASE_URL not set"))
+            .await
+            .expect("Invalid database configuration"),
+    };
+    Router::new()
+        .route("/", post(notes::post_notes))
+        .route("/", get(notes::get_notes))
+        .route("/:note_id", get(notes::get_notes_id))
+        .route("/:note_id", delete(notes::delete_notes_id))
+        .route("/:note_id", patch(notes::patch_notes_id))
         .route_layer(axum::middleware::from_fn_with_state(
             app_state.clone(),
             middleware::validate_session,

@@ -61,17 +61,17 @@ impl DbPassword {
     }
 }
 
-pub struct _DbNote {
-    note_id: Uuid,
-    user_id: Uuid,
-    title: Vec<u8>,
-    title_nonce: [u8; 12],
-    content: Vec<u8>,
-    content_nonce: [u8; 12],
+pub struct DbNote {
+    pub note_id: Uuid,
+    pub user_id: Uuid,
+    pub title: Vec<u8>,
+    pub title_nonce: [u8; 12],
+    pub content: Vec<u8>,
+    pub content_nonce: [u8; 12],
 }
 
-impl _DbNote {
-    fn _new(
+impl DbNote {
+    fn new(
         note_id: Uuid,
         user_id: Uuid,
         title: Vec<u8>,
@@ -126,6 +126,27 @@ pub trait Db {
         password: &Vec<u8>,
         nonce: &[u8; 12],
     ) -> Result<DbPassword>;
+    async fn create_note(
+        &self,
+        note_id: &Uuid,
+        user_id: &Uuid,
+        title: &Vec<u8>,
+        title_nonce: &[u8; 12],
+        content: &Vec<u8>,
+        content_nonce: &[u8; 12],
+    ) -> Result<DbNote>;
+    async fn get_note(&self, user_id: &Uuid, note_id: &Uuid) -> Result<DbNote>;
+    async fn get_notes(&self, user_id: &Uuid) -> Result<Vec<DbNote>>;
+    async fn delete_note(&self, user_id: &Uuid, note_id: &Uuid) -> Result<()>;
+    async fn patch_note(
+        &self,
+        note_id: &Uuid,
+        user_id: &Uuid,
+        title: &Vec<u8>,
+        title_nonce: &[u8; 12],
+        content: &Vec<u8>,
+        content_nonce: &[u8; 12],
+    ) -> Result<DbNote>;
 }
 
 #[derive(Clone)]
@@ -314,7 +335,7 @@ impl Db for PostgreDb {
         let sql = "
             UPDATE passwords SET
             domain_name = $1, username = $2, password = $3, nonce = $4
-            WHERE password_id = $5;
+            WHERE password_id = $5 AND user_id = $6;
         ";
         sqlx::query(sql)
             .bind(domain_name)
@@ -322,8 +343,109 @@ impl Db for PostgreDb {
             .bind(password)
             .bind(nonce)
             .bind(password_id)
+            .bind(user_id)
             .execute(&self.pool)
             .await?;
-        self.get_password(&user_id, &password_id).await
+        self.get_password(user_id, password_id).await
+    }
+
+    async fn create_note(
+        &self,
+        note_id: &Uuid,
+        user_id: &Uuid,
+        title: &Vec<u8>,
+        title_nonce: &[u8; 12],
+        content: &Vec<u8>,
+        content_nonce: &[u8; 12],
+    ) -> Result<DbNote> {
+        let sql = "
+            INSERT INTO notes
+            (note_id, user_id, title, title_nonce, content, content_nonce)
+            VALUES ($1, $2, $3, $4, $5, $6);
+        ";
+        sqlx::query(sql)
+            .bind(note_id)
+            .bind(user_id)
+            .bind(title)
+            .bind(title_nonce)
+            .bind(content)
+            .bind(content_nonce)
+            .execute(&self.pool)
+            .await?;
+        self.get_note(user_id, note_id).await
+    }
+
+    async fn get_note(&self, user_id: &Uuid, note_id: &Uuid) -> Result<DbNote> {
+        let sql = "
+            SELECT * FROM notes WHERE
+            notes.user_id = $1 AND notes.note_id = $2;
+        ";
+        let query = sqlx::query(sql).bind(user_id).bind(note_id);
+        let row = query.fetch_one(&self.pool).await?;
+        Ok(DbNote::new(
+            row.get("note_id"),
+            row.get("user_id"),
+            row.get("title"),
+            row.get("title_nonce"),
+            row.get("content"),
+            row.get("content_nonce"),
+        ))
+    }
+
+    async fn get_notes(&self, user_id: &Uuid) -> Result<Vec<DbNote>> {
+        let sql = "SELECT * FROM notes WHERE notes.user_id = $1;";
+        let query = sqlx::query(sql).bind(user_id);
+        let rows = query.fetch_all(&self.pool).await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| {
+                DbNote::new(
+                    row.get("note_id"),
+                    row.get("user_id"),
+                    row.get("title"),
+                    row.get("title_nonce"),
+                    row.get("content"),
+                    row.get("content_nonce"),
+                )
+            })
+            .collect())
+    }
+
+    async fn delete_note(&self, user_id: &Uuid, note_id: &Uuid) -> Result<()> {
+        let sql = "
+            DELETE from notes WHERE notes.user_id = $1 AND notes.note_id = $2;
+        ";
+        sqlx::query(sql)
+            .bind(user_id)
+            .bind(note_id)
+            .execute(&self.pool)
+            .await?;
+        Ok(())
+    }
+
+    async fn patch_note(
+        &self,
+        note_id: &Uuid,
+        user_id: &Uuid,
+        title: &Vec<u8>,
+        title_nonce: &[u8; 12],
+        content: &Vec<u8>,
+        content_nonce: &[u8; 12],
+    ) -> Result<DbNote> {
+        let sql = "
+            UPDATE notes SET
+            title = $1, title_nonce = $2, content = $3, content_nonce = $4
+            WHERE note_id = $5 AND user_id = $6;
+        ";
+        sqlx::query(sql)
+            .bind(title)
+            .bind(title_nonce)
+            .bind(content)
+            .bind(content_nonce)
+            .bind(note_id)
+            .bind(user_id)
+            .execute(&self.pool)
+            .await?;
+        self.get_note(user_id, note_id).await
     }
 }

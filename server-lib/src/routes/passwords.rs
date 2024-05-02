@@ -167,7 +167,7 @@ pub async fn patch_passwords_id(
     };
 
     let password_id = match password_id {
-        Ok(password_id) => password_id,
+        Ok(password_id) => password_id.0,
         Err(err) => return MessageResponse::bad_request(err.to_string()),
     };
 
