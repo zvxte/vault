@@ -53,14 +53,7 @@
             <div class="entries password-entries d-none"></div>
 
             <!-- Note entries -->
-            <div class="entries note-entries d-none">
-                <!-- <div class="entry note-entry" data-note-id="id" data-title="title" data-content="content">
-                    <div class="entry-pair-col">
-                        <label class="entry-label">title</label>
-                        <span class="entry-value">title</span>
-                    </div>
-                </div> -->
-            </div>
+            <div class="entries note-entries d-none"></div>
         </div>
 
 
@@ -82,7 +75,8 @@
                     </div>
                     <div class="editor-pair-col">
                         <label class="editor-label">password</label>
-                        <input class="input editor-input new-password-editor-password" type="password">
+                        <input class="input editor-input new-password-editor-password" 
+                        onmouseenter="(this.type='text')" onmouseout="(this.type='password')" type="password">
                     </div>
                 </div>
                 <div class="editor-controls">
@@ -108,7 +102,8 @@
                     </div>
                     <div class="editor-pair-col">
                         <label class="editor-label">password</label>
-                        <input class="input editor-input password-editor-password" type="password" value="">
+                        <input class="input editor-input password-editor-password" 
+                        type="password" onmouseenter="(this.type='text')" onmouseout="(this.type='password')" value="">
                     </div>
                 </div>
                 <div class="editor-controls">
@@ -128,16 +123,16 @@
                 <div class="editor-entry">
                     <div class="editor-pair-col">
                         <label class="editor-label">title</label>
-                        <input class="input editor-input" type="text">
+                        <input class="input editor-input new-note-editor-title" type="text">
                     </div>
                     <div class="editor-pair-col">
                         <label class="editor-label">content</label>
-                        <textarea class="input editor-input editor-textarea"></textarea>
+                        <textarea class="input editor-input editor-textarea new-note-editor-content"></textarea>
                     </div>
                 </div>
                 <div class="editor-controls">
                     <button class="btn editor-btn editor-cancel-btn" type="button">cancel</button>
-                    <button class="btn editor-btn editor-save-btn" type="button">save</button>
+                    <button class="btn editor-btn editor-save-btn new-note-editor-save-btn" type="button">save</button>
                 </div>
             </div>
 
@@ -160,8 +155,8 @@
                 <div class="editor-controls">
                     <button class="btn editor-btn editor-cancel-btn" type="button">cancel</button>
                     <div>
-                        <button class="btn editor-btn editor-delete-btn" type="button">delete</button>
-                        <button class="btn editor-btn editor-save-btn" type="button">save</button>
+                        <button class="btn editor-btn editor-delete-btn note-editor-delete-btn" type="button">delete</button>
+                        <button class="btn editor-btn editor-save-btn note-editor-save-btn" type="button">save</button>
                     </div>
                 </div>
             </div>
@@ -207,7 +202,8 @@
                     </div>
                     <div class="editor-pair-col">
                         <label class="editor-label">server address</label>
-                        <input class="input editor-input editor-login-server-address" type="text" value="http://127.0.0.1:5000">
+                        <input class="input editor-input editor-login-server-address editor-show-password" 
+                        type="text" value="http://127.0.0.1:5000">
                     </div>
                 </div>
                 <div class="editor-controls">

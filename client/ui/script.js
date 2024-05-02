@@ -1,6 +1,22 @@
 document.addEventListener("DOMContentLoaded", () => {
 /* --- */
 
+// ENCRYPTION, DECRYPTION
+async function encrypt(data) {
+    const result = await invoke("encrypt", {
+        data: data
+    });
+    return result
+}
+
+async function decrypt(data, nonce) {
+    const result = await invoke("decrypt", {
+        data: data,
+        nonce: nonce
+    })
+    return result
+}
+
 // STRUCTURES
 class User {
     constructor(user_id, username, plain_master_password, salt) {
@@ -31,23 +47,24 @@ class Password {
             data.password_id, data.domain_name, data.username, data.password, data.nonce
         )
     }
+}
 
-    static async encryptPassword(password) {
-        const result = await invoke("encrypt", {
-            data: password
-        });
-        console.log("result: ", result);
-        return result
+class Note {
+    constructor(note_id, title, title_nonce, content, content_nonce) {
+        this.note_id = note_id;
+        this.title = title;
+        this.title_nonce = title_nonce;
+        this.content = content;
+        this.content_nonce = content_nonce;
     }
 
-    static async decryptPassword(password, nonce) {
-        const result = await invoke("decrypt", {
-            data: password,
-            nonce: nonce
-        })
-        return result
+    static from(data) {
+        return new Note(
+            data.note_id, data.title, data.title_nonce, data.content, data.content_nonce
+        )
     }
 }
+
 
 class Server {
     constructor(address) {
@@ -176,6 +193,80 @@ class Server {
         });
         return response;
     }
+
+    async postNotes(session_id, title, title_nonce, content, content_nonce) {
+        const response = await this.client.request({
+            method: "POST",
+            url: this.address + "/notes",
+            headers: {
+                ContentType: "application/json",
+                session_id: session_id
+            },
+            body: this.http.Body.json({
+                title: title,
+                title_nonce: title_nonce,
+                content: content,
+                content_nonce: content_nonce
+            }),
+            responseType: this.http.ResponseType.JSON
+        });
+        return response
+    }
+
+    async getNotes(session_id) {
+        const response = await this.client.request({
+            method: "GET",
+            url: this.address + "/notes",
+            headers: {
+                session_id: session_id
+            },
+            responseType: this.http.ResponseType.JSON
+        });
+        return response;
+    }
+
+    async getNotesId(session_id, note_id) {
+        const response = await this.client.request({
+            method: "GET",
+            url: this.address + "/notes/" + note_id,
+            headers: {
+                session_id: session_id
+            },
+            responseType: this.http.ResponseType.JSON
+        });
+        return response;
+    }
+
+    async deleteNotesId(session_id, note_id) {
+        const response = await this.client.request({
+            method: "DELETE",
+            url: this.address + "/notes/" + note_id,
+            headers: {
+                session_id: session_id
+            },
+            responseType: this.http.ResponseType.JSON
+        });
+        return response;
+    }
+
+    async patchNotesId(session_id, note_id, title, title_nonce, content, content_nonce) {
+        const response = await this.client.request({
+            method: "PATCH",
+            url: this.address + "/notes/" + note_id,
+            headers: {
+                ContentType: "application/json",
+                session_id: session_id
+            },
+            body: this.http.Body.json({
+                title: title,
+                title_nonce: title_nonce,
+                content: content,
+                content_nonce: content_nonce
+            }),
+            responseType: this.http.ResponseType.JSON
+        });
+        return response;
+    }
 }
 
 class App  {
@@ -187,12 +278,14 @@ class App  {
         // account buttons
         const loginBtn = document.querySelector(".login-btn");
         loginBtn.addEventListener("click", () => {
+            this.clearLoginEditor();
             const loginEditor = document.querySelector(".login-editor");
             this.selectEditor(loginEditor);
         });
 
         const registerBtn = document.querySelector(".register-btn");
         registerBtn.addEventListener("click", () => {
+            this.clearRegisterEditor();
             const registerEditor = document.querySelector(".register-editor");
             this.selectEditor(registerEditor);
         });
@@ -202,12 +295,18 @@ class App  {
         passwordsTabBtn.addEventListener("click", () => {
             const passwordEntries = document.querySelector(".password-entries");
             this.selectEntries(passwordEntries, passwordsTabBtn);
+            const searchInput = document.querySelector(".search-input");
+            searchInput.value = "";
+            searchInput.dispatchEvent(new Event("input"));
         });
 
         const notesTabBtn = document.querySelector(".notes-tab-btn");
         notesTabBtn.addEventListener("click", () => {
             const noteEntries = document.querySelector(".note-entries");
             this.selectEntries(noteEntries, notesTabBtn);
+            const searchInput = document.querySelector(".search-input");
+            searchInput.value = "";
+            searchInput.dispatchEvent(new Event("input"));
         });
 
         // editor buttons
@@ -267,6 +366,7 @@ class App  {
     }
 
     async setupAfterLogin() {
+        // hide login / register buttons, show logout button
         document.querySelector(".login-btn").classList.add("d-none");
         document.querySelector(".register-btn").classList.add("d-none");
         const logoutBtn = document.querySelector(".logout-btn");
@@ -306,6 +406,7 @@ class App  {
         // enable `NEW` buttons
         const newPasswordBtn = document.querySelector(".new-password-btn");
         newPasswordBtn.addEventListener("click", () => {
+            this.clearNewPasswordEditor();
             this.unselectEntry();
             const passwordEditor = document.querySelector(".new-password-editor");
             this.selectEditor(passwordEditor);
@@ -313,6 +414,7 @@ class App  {
 
         const newNoteBtn = document.querySelector(".new-note-btn");
         newNoteBtn.addEventListener("click", () => {
+            this.clearNewNoteEditor();
             this.unselectEntry();
             const noteEditor = document.querySelector(".new-note-editor");
             this.selectEditor(noteEditor);
@@ -331,27 +433,47 @@ class App  {
                 this.showFailureNotification(error);
             })
         passwords.forEach(password => {
-            console.log(password);
             this.addPasswordEntry(password);
         });
 
-        // load all existing notes (todo)
+        // load all existing notes
+        const notes = [];
+        await this.server.getNotes(this.session.session_id)
+            .then((result) => {
+                console.log(result);
+                if (result.ok == false) this.showFailureNotification(result.data.message)
+                else result.data.forEach(note => {
+                    notes.push(Note.from(note))
+                });
+            })
+            .catch((error) => {
+                console.log(error);
+                this.showFailureNotification(error);
+            })
+        console.log(notes);
+        notes.forEach(note => {
+            this.addNoteEntry(note);
+        });
 
-        // enable editor buttons (todo for notes)
+        // enable editor buttons
+        // passwords
         const newPasswordEditorSaveBtn = document.querySelector(".new-password-editor-save-btn");
         newPasswordEditorSaveBtn.addEventListener("click", async () => {
             const domainName = document.querySelector(".new-password-editor-domain").value;
             const username = document.querySelector(".new-password-editor-username").value;
             const password = document.querySelector(".new-password-editor-password").value;
 
-            let encryptedData = await Password.encryptPassword(password);
+            let encryptedData = await encrypt(password);
 
             await this.server.postPasswords(this.session.session_id, domainName, username, encryptedData[0], encryptedData[1])
                 .then((result) => {
-                    const password = Password.from(result.data);
-                    this.addPasswordEntry(password);
-                    this.unselectEditor();
-                    this.showSuccessNotification("Password created");
+                    if (result.ok == false) {this.showFailureNotification("Failed to create a new password")}
+                    else {
+                        const password = Password.from(result.data);
+                        this.addPasswordEntry(password);
+                        this.unselectEditor();
+                        this.showSuccessNotification("Password created");
+                    }
                 })
                 .catch((error) => { this.showFailureNotification(error) })
         });
@@ -363,13 +485,11 @@ class App  {
             const username = document.querySelector(".password-editor-username").value;
             const password = document.querySelector(".password-editor-password").value;
 
-            let encryptedData = await Password.encryptPassword(password);
-            console.log(passwordId, domainName, username, encryptedData[0], encryptedData[1]);
+            let encryptedData = await encrypt(password);
             await this.server.patchPasswordsId(this.session.session_id, passwordId, domainName, username, encryptedData[0], encryptedData[1])
                 .then((result) => {
                     if (result.ok == false) {this.showFailureNotification("Failed to update password")}
                     else {
-                        console.log(result);
                         this.deletePasswordEntry(passwordId);
                         const password = Password.from(result.data);
                         this.addPasswordEntry(password);
@@ -393,6 +513,97 @@ class App  {
                 })
                 .catch((error) => { this.showFailureNotification(error) })
         });
+
+        // notes
+        const newNoteEditorSaveBtn = document.querySelector(".new-note-editor-save-btn");
+        newNoteEditorSaveBtn.addEventListener("click", async () => {
+            const title = document.querySelector(".new-note-editor-title").value;
+            const content = document.querySelector(".new-note-editor-content").value;
+
+            let encryptedTitleData = await encrypt(title)
+                .catch((error) => this.showFailureNotification(error));
+            let encryptedContentData = await encrypt(content)
+                .catch((error) => this.showFailureNotification(error));
+            
+
+            await this.server.postNotes(this.session.session_id,
+                encryptedTitleData[0], encryptedTitleData[1],
+                encryptedContentData[0], encryptedContentData[1]
+            )
+                .then((result) => {
+                    if (result.ok == false) this.showFailureNotification("Failed to create a new note")
+                    else {
+                        const note = Note.from(result.data);
+                        this.addNoteEntry(note);
+                        this.unselectEditor();
+                        this.showSuccessNotification("Note created");
+                    }
+                })
+                .catch((error) => { this.showFailureNotification(error) })
+        });
+
+        const noteEditorSaveBtn = document.querySelector(".note-editor-save-btn");
+        noteEditorSaveBtn.addEventListener("click", async () => {
+            const noteId = document.querySelector(".note-editor-id").dataset.noteId;
+            const title = document.querySelector(".note-editor-title").value;
+            const content = document.querySelector(".note-editor-content").value;
+
+            let encryptedTitleData = await encrypt(title)
+                .catch((error) => this.showFailureNotification(error));
+            let encryptedContentData = await encrypt(content)
+            .catch((error) => this.showFailureNotification(error));
+
+            await this.server.patchNotesId(
+                this.session.session_id, noteId,
+                encryptedTitleData[0], encryptedTitleData[1],
+                encryptedContentData[0], encryptedContentData[1]
+            
+            )
+                .then((result) => {
+                    if (result.ok == false) {this.showFailureNotification("Failed to update note")}
+                    else {
+                        this.deleteNoteEntry(noteId);
+                        const note = Note.from(result.data);
+                        this.addNoteEntry(note);
+                        this.unselectEditor();
+                        this.showSuccessNotification("Note updated");
+                    }
+                })
+                .catch((error) => { this.showFailureNotification(error) })
+        });
+
+        const noteEditorDeleteBtn = document.querySelector(".note-editor-delete-btn");
+        noteEditorDeleteBtn.addEventListener("click", async () => {
+            const noteId = document.querySelector(".note-editor-id").dataset.noteId;
+
+            await this.server.deleteNotesId(this.session.session_id, noteId)
+                .then((_result) => {
+                    this.deleteNoteEntry(noteId);
+                    this.unselectEditor();
+                    this.unselectEntry();
+                    this.showSuccessNotification("Note deleted");
+                })
+                .catch((error) => { this.showFailureNotification(error) })
+        });
+
+        // search support
+        const searchInput = document.querySelector(".search-input");
+        searchInput.addEventListener("input", (event) => {
+            let value = event.target.value.toLowerCase();
+
+            const passwordEntries = document.querySelectorAll(".password-entry");
+            passwordEntries.forEach(entry => {
+                const isVisible = entry.dataset.username.toLowerCase().includes(value) ||
+                    entry.dataset.domainName.toLowerCase().includes(value);
+                    entry.classList.toggle("d-none", !isVisible);
+            });
+
+            const noteEntries = document.querySelectorAll(".note-entry");
+            noteEntries.forEach(entry => {
+                const isVisible = entry.dataset.title.toLowerCase().includes(value);
+                entry.classList.toggle("d-none", !isVisible);
+            });
+        })
     }
     
     unselectEditor() {
@@ -418,15 +629,67 @@ class App  {
         passwordInput.value = passwordEntry.dataset.password;
     }
 
+    fillNoteEditor(noteEntry) {
+        const idInput = document.querySelector(".note-editor-id");
+        const titleInput = document.querySelector(".note-editor-title");
+        const contentTextArea = document.querySelector(".note-editor-content");
+        idInput.dataset.noteId = noteEntry.dataset.noteId;
+        titleInput.value = noteEntry.dataset.title;
+        contentTextArea.value = noteEntry.dataset.content;
+    }
+
     clearPasswordEditor() {
         const idInput = document.querySelector(".password-editor-id");
         const domainInput = document.querySelector(".password-editor-domain");
         const usernameInput = document.querySelector(".password-editor-username");
         const passwordInput = document.querySelector(".password-editor-password");
-        idInput.dataset.passwordId = "";
+        idInput.dataset.PasswordId = "";
         domainInput.value = "";
         usernameInput.value = "";
         passwordInput.value = "";
+    }
+
+    clearNewPasswordEditor() {
+        const domainInput = document.querySelector(".new-password-editor-domain");
+        const usernameInput = document.querySelector(".new-password-editor-username");
+        const passwordInput = document.querySelector(".new-password-editor-password");
+        domainInput.value = "";
+        usernameInput.value = "";
+        passwordInput.value = "";
+    }
+
+    clearNoteEditor() {
+        const idInput = document.querySelector(".note-editor-id");
+        const titleInput = document.querySelector(".note-editor-title");
+        const contentTextArea = document.querySelector(".note-editor-content");
+        idInput.dataset.noteId = "";
+        titleInput.value = "";
+        contentTextArea.value = "";
+    }
+
+    clearNewNoteEditor() {
+        const titleInput = document.querySelector(".new-note-editor-title");
+        const contentTextArea = document.querySelector(".new-note-editor-content");
+        titleInput.value = "";
+        contentTextArea.value = "";
+    }
+
+    clearRegisterEditor() {
+        const usernameInput = document.querySelector(".editor-register-username");
+        const passwordInput = document.querySelector(".editor-register-password");
+        const serverAddressInput = document.querySelector(".editor-register-server-address");
+        usernameInput.value = "";
+        passwordInput.value = "";
+        serverAddressInput.value = "";
+    }
+
+    clearLoginEditor() {
+        const usernameInput = document.querySelector(".editor-login-username");
+        const passwordInput = document.querySelector(".editor-login-password");
+        const serverAddressInput = document.querySelector(".editor-login-server-address");
+        usernameInput.value = "";
+        passwordInput.value = "";
+        serverAddressInput.value = "";
     }
 
     selectEntries(selectedEntries, selectedTabBtn) {
@@ -500,7 +763,7 @@ class App  {
         usernamePair.appendChild(usernameLabel);
         usernamePair.appendChild(usernameValue);
         
-        const decryptedPassword = await Password.decryptPassword(password.password, password.nonce)
+        const decryptedPassword = await decrypt(password.password, password.nonce)
             .catch((error) => {
                 this.showFailureNotification(error);
             })
@@ -528,11 +791,58 @@ class App  {
         this.clearPasswordEditor();
     }
 
+    async addNoteEntry(note) {
+        const decryptedTitle = await decrypt(note.title, note.title_nonce)
+            .catch((error) => this.showFailureNotification(error));
+        const decryptedContent = await decrypt(note.content, note.content_nonce)
+            .catch((error) => this.showFailureNotification(error));
+
+       const titleLabel = document.createElement("label");
+       titleLabel.classList.add("entry-label");
+       titleLabel.innerText = "title";
+       const titleValue = document.createElement("span");
+       titleValue.classList.add("entry-value");
+       titleValue.innerText = decryptedTitle;
+       const titlePair = document.createElement("div");
+       titlePair.classList.add("entry-pair-col");
+       titlePair.appendChild(titleLabel);
+       titlePair.appendChild(titleValue);
+       const noteEntry = document.createElement("div");
+       noteEntry.classList.add("entry", "note-entry");
+
+       noteEntry.dataset.noteId = note.note_id;
+       noteEntry.dataset.title = decryptedTitle;
+       noteEntry.dataset.content = decryptedContent;
+       noteEntry.appendChild(titlePair);
+
+       noteEntry.addEventListener("click", () => {
+            this.selectEntry(noteEntry);
+            const noteEditor = document.querySelector(".note-editor");
+            this.selectEditor(noteEditor);
+            this.fillNoteEditor(noteEntry);
+        });
+
+        const noteEntries = document.querySelector(".note-entries");
+        noteEntries.appendChild(noteEntry);
+
+        this.unselectEditor();
+        this.clearNoteEditor();
+    }
+
     deletePasswordEntry(passwordId) {
         const passwordEntries = document.querySelectorAll(".password-entry");
         passwordEntries.forEach(passwordEntry => {
             if (passwordEntry.dataset.passwordId === passwordId) {
                 passwordEntry.remove();
+            }
+        });
+    }
+
+    deleteNoteEntry(noteId) {
+        const noteEntries = document.querySelectorAll(".note-entry");
+        noteEntries.forEach(noteEntry => {
+            if (noteEntry.dataset.noteId === noteId) {
+                noteEntry.remove();
             }
         });
     }
