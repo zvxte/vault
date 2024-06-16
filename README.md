@@ -25,6 +25,10 @@ export SERVER_URL="{address}:{port}"
 export DATABASE_URL="postgres://{username}:{password}@{address}:{port}/{databaseName}"
 ```
 
+## Todo
+ - sessions expiration time
+ - sessions management from client
+
 ## Disclaimer
 This is a personal project created for learning purposes and is **not suitable** for real-world usage.
 
