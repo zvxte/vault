@@ -1,4 +1,5 @@
 # Vault
+
 **Password and note manager**.
 
 Built with [Axum](https://github.com/tokio-rs/axum) and [Tauri](https://github.com/tauri-apps/tauri) frameworks.
@@ -8,6 +9,7 @@ Uses [Argon2id](https://github.com/RustCrypto/password-hashes/tree/master/argon2
 See [images](./images) directory for quick view on desktop application.
 
 ## Setup
+
 To compile the project, run:
 ```bash
 cargo build --release
@@ -26,11 +28,14 @@ export DATABASE_URL="postgres://{username}:{password}@{address}:{port}/{database
 ```
 
 ## Todo
+
  - sessions expiration time
  - sessions management from client
 
 ## Disclaimer
+
 This is a personal project created for learning purposes and is **not suitable** for real-world usage.
 
 ## License
+
 This project is licensed under [MIT License](./LICENSE).
