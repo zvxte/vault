@@ -1,12 +1,13 @@
 [package]
-name = "server-lib"
+name = "server"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 crypto = { path = "../crypto" }
 
-axum = { version = "0.7", features = ["json", "form"] }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "macros"] }
+axum = { version = "0.7", features = ["http1", "json", "form"] }
 serde = { version = "1.0", features = ["derive"] }
 sqlx = { version = "0.7", features = ["runtime-tokio", "tls-native-tls", "postgres", "uuid"] }
 uuid = { version = "1.8", features = ["v4", "fast-rng", "macro-diagnostics", "serde"] }

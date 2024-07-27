@@ -1,7 +1,6 @@
 [workspace]
 members = [
-    "server-bin",
-    "server-lib",
+    "server",
     "crypto",
     "client/src-tauri",
 ]
