@@ -10,7 +10,9 @@ See [images](./images) directory for quick view on desktop application.
 
 ## Setup
 
-To compile the project, run:
+You need [system dependencies](https://tauri.app/v1/guides/getting-started/prerequisites#installing) required by Tauri to compile the project.
+
+Then run:
 ```bash
 cargo build --release
 cargo tauri build
